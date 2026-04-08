@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Location' if location else 'New Location' }} - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ 'Edit Location' if location else 'New Location' }}</h1>
+    <a href="{{ url_for('admin.locations') }}" class="btn btn-outline-secondary">
+        Back to Locations
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post"
+                      action="{{ url_for('admin.edit_location', loc_id=location.id) if location else url_for('admin.create_location') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name</label>
+                        {{ form.name(class="form-control", id="name", placeholder="Location name") }}
+                        {% if form.name.errors %}
+                            {% for error in form.name.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        {{ form.address(class="form-control", id="address", placeholder="Full address") }}
+                        {% if form.address.errors %}
+                            {% for error in form.address.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        {{ form.phone(class="form-control", id="phone", placeholder="Phone number") }}
+                        {% if form.phone.errors %}
+                            {% for error in form.phone.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.is_active(class="form-check-input", id="is_active") }}
+                        <label for="is_active" class="form-check-label">Active</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Update Location' if location else 'Create Location' }}
+                        </button>
+                        <a href="{{ url_for('admin.locations') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h1 class="mb-4">{{ title }}</h1>
+
+    <form method="POST"
+          action="{% if student is defined and student %}{{ url_for('students.edit', student_id=student.id) }}{% else %}{{ url_for('students.create') }}{% endif %}">
+      {{ form.hidden_tag() }}
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="first_name" class="form-label">First Name <span class="text-danger">*</span></label>
+          {{ form.first_name(class="form-control" ~ (" is-invalid" if form.first_name.errors else ""), id="first_name", placeholder="First name") }}
+          {% for error in form.first_name.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+          {{ form.last_name(class="form-control" ~ (" is-invalid" if form.last_name.errors else ""), id="last_name", placeholder="Last name") }}
+          {% for error in form.last_name.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="email" class="form-label">Email</label>
+          {{ form.email(class="form-control" ~ (" is-invalid" if form.email.errors else ""), id="email", placeholder="email@example.com") }}
+          {% for error in form.email.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label for="phone" class="form-label">Phone</label>
+          {{ form.phone(class="form-control" ~ (" is-invalid" if form.phone.errors else ""), id="phone", placeholder="Phone number") }}
+          {% for error in form.phone.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label for="date_of_birth" class="form-label">Date of Birth</label>
+          {{ form.date_of_birth(class="form-control" ~ (" is-invalid" if form.date_of_birth.errors else ""), id="date_of_birth") }}
+          {% for error in form.date_of_birth.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-6">
+          <label for="license_number" class="form-label">License Number</label>
+          {{ form.license_number(class="form-control" ~ (" is-invalid" if form.license_number.errors else ""), id="license_number", placeholder="License number") }}
+          {% for error in form.license_number.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label for="address" class="form-label">Address</label>
+        {{ form.address(class="form-control" ~ (" is-invalid" if form.address.errors else ""), id="address", rows="2", placeholder="Street address") }}
+        {% for error in form.address.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="row mb-3">
+        <div class="col-md-4">
+          <label for="status" class="form-label">Status</label>
+          {{ form.status(class="form-control" ~ (" is-invalid" if form.status.errors else ""), id="status") }}
+          {% for error in form.status.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-4">
+          <label for="location_id" class="form-label">Location <span class="text-danger">*</span></label>
+          {{ form.location_id(class="form-control" ~ (" is-invalid" if form.location_id.errors else ""), id="location_id") }}
+          {% for error in form.location_id.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+        <div class="col-md-4">
+          <label for="assigned_coach_id" class="form-label">Assigned Coach</label>
+          {{ form.assigned_coach_id(class="form-control" ~ (" is-invalid" if form.assigned_coach_id.errors else ""), id="assigned_coach_id") }}
+          {% for error in form.assigned_coach_id.errors %}
+            <div class="invalid-feedback">{{ error }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4">
+        {{ form.submit(class="btn btn-primary") }}
+        <a href="{% if student is defined and student %}{{ url_for('students.detail', student_id=student.id) }}{% else %}{{ url_for('students.list_students') }}{% endif %}"
+           class="btn btn-outline-secondary">
+          Cancel
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

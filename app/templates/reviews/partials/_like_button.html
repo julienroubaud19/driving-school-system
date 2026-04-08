@@ -1,0 +1,10 @@
+<button class="btn btn-sm {% if user_liked %}btn-primary{% else %}btn-outline-primary{% endif %}"
+        hx-post="{{ url_for('reviews.like', review_id=review.id) }}"
+        hx-target="#like-btn"
+        hx-swap="innerHTML">
+  {% if user_liked %}
+    &#9829; Liked ({{ review.like_count }})
+  {% else %}
+    &#9825; Like ({{ review.like_count }})
+  {% endif %}
+</button>

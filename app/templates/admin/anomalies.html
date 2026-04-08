@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Anomaly Flags - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Anomaly Flags</h1>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>Metric</th>
+                <th>Threshold</th>
+                <th>Acknowledged</th>
+                <th>Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for flag in flags %}
+            <tr>
+                <td>{{ flag.id }}</td>
+                <td>
+                    {% if flag.flag_type == 'failed_login_spike' %}
+                        <span class="badge bg-danger">{{ flag.flag_type }}</span>
+                    {% elif flag.flag_type == 'high_dispute_rate' %}
+                        <span class="badge bg-warning text-dark">{{ flag.flag_type }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ flag.flag_type }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ flag.description | default('--', true) }}</td>
+                <td>{{ flag.metric_value | default('--', true) }}</td>
+                <td>{{ flag.threshold_value | default('--', true) }}</td>
+                <td>
+                    {% if flag.acknowledged %}
+                        <span class="badge bg-success">Yes</span>
+                    {% else %}
+                        <span class="badge bg-danger">No</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <small>{{ flag.created_at.strftime('%Y-%m-%d %H:%M') if flag.created_at else '--' }}</small>
+                </td>
+                <td>
+                    {% if not flag.acknowledged %}
+                    <form method="post" action="{{ url_for('admin.acknowledge_anomaly', flag_id=flag.id) }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                onclick="return confirm('Acknowledge this anomaly?');">
+                            Acknowledge
+                        </button>
+                    </form>
+                    {% else %}
+                        <span class="text-muted">--</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" class="text-center text-muted">No anomaly flags found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

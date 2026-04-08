@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Sensitive Word List - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Sensitive Word List</h1>
+  <a href="{{ url_for('moderation.queue') }}" class="btn btn-outline-secondary">
+    Back to Queue
+  </a>
+</div>
+
+{# Add word form #}
+<div class="card mb-4">
+  <div class="card-header"><h5 class="mb-0">Add New Word</h5></div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('moderation.add_word') }}" class="row g-3 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-4">
+        <label for="word-input" class="form-label">Word</label>
+        <input type="text" id="word-input" name="word" class="form-control"
+               placeholder="Enter sensitive word" required>
+      </div>
+      <div class="col-md-4">
+        <label for="category-input" class="form-label">Category</label>
+        <input type="text" id="category-input" name="category" class="form-control"
+               placeholder="e.g. profanity, spam, offensive">
+      </div>
+      <div class="col-md-4">
+        <button type="submit" class="btn btn-primary w-100">Add Word</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Word list table #}
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Word</th>
+        <th>Category</th>
+        <th>Active</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in words %}
+        <tr>
+          <td><code>{{ w.word }}</code></td>
+          <td>
+            {% if w.category %}
+              <span class="badge bg-secondary">{{ w.category }}</span>
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if w.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-secondary">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('moderation.toggle_word', word_id=w.id) }}"
+                  class="d-inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="btn btn-sm {% if w.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                {% if w.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="4" class="text-center text-muted py-4">
+            No sensitive words configured.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Arbitrate Dispute #{{ dispute.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Arbitrate Dispute #{{ dispute.id }}</h1>
+  <a href="{{ url_for('reviews.detail', review_id=dispute.review_id) }}" class="btn btn-outline-secondary">
+    Back to Review
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    {# Dispute details #}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Dispute Details</h5>
+        {% if dispute.status == 'open' %}
+          <span class="badge bg-warning text-dark">Open</span>
+        {% elif dispute.status == 'under_review' %}
+          <span class="badge bg-info">Under Review</span>
+        {% elif dispute.status == 'resolved' %}
+          <span class="badge bg-success">Resolved</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ dispute.status }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">Filed By</dt>
+          <dd class="col-sm-9">{{ dispute.initiator.username }}</dd>
+
+          <dt class="col-sm-3">Filed On</dt>
+          <dd class="col-sm-9">{{ dispute.created_at.strftime('%b %d, %Y at %H:%M') }}</dd>
+
+          <dt class="col-sm-3">Review</dt>
+          <dd class="col-sm-9">
+            <a href="{{ url_for('reviews.detail', review_id=dispute.review_id) }}">
+              Review #{{ dispute.review_id }}
+            </a>
+          </dd>
+
+          <dt class="col-sm-3">Statement</dt>
+          <dd class="col-sm-9" style="white-space: pre-wrap;">{{ dispute.statement }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    {# Original review #}
+    <div class="card mb-4">
+      <div class="card-header"><h5 class="mb-0">Original Review</h5></div>
+      <div class="card-body">
+        <p style="white-space: pre-wrap;">{{ dispute.review.content }}</p>
+        <small class="text-muted">
+          By {{ dispute.review.author.username }} &middot;
+          {{ dispute.review.created_at.strftime('%b %d, %Y at %H:%M') }}
+        </small>
+      </div>
+    </div>
+
+    {# Evidence #}
+    {% if dispute.evidence %}
+      <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Evidence</h5></div>
+        <ul class="list-group list-group-flush">
+          {% for ev in dispute.evidence %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <a href="{{ url_for('static', filename=ev.file_path) }}" target="_blank">
+                  {{ ev.file_path.split('/')|last }}
+                </a>
+                {% if ev.description %}
+                  <br><small class="text-muted">{{ ev.description }}</small>
+                {% endif %}
+              </div>
+              <small class="text-muted">
+                Uploaded by {{ ev.uploader.username }}
+                on {{ ev.created_at.strftime('%b %d, %Y') }}
+              </small>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    {# Arbitration form #}
+    <div class="card">
+      <div class="card-header"><h5 class="mb-0">Arbitration Outcome</h5></div>
+      <div class="card-body">
+        <form method="post">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.outcome.label(class="form-label") }}
+            {{ form.outcome(class="form-control" + (" is-invalid" if form.outcome.errors else ""), rows=5, placeholder="Enter the arbitration outcome and decision...") }}
+            {% for error in form.outcome.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-4">
+            {{ form.submit(class="btn btn-primary") }}
+            <a href="{{ url_for('reviews.detail', review_id=dispute.review_id) }}"
+               class="btn btn-outline-secondary ms-2">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

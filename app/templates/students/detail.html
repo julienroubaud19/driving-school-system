@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>{{ student.full_name }}</h1>
+  <div>
+    {% if has_permission('student.edit') %}
+      <a href="{{ url_for('students.edit', student_id=student.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-pencil"></i> Edit
+      </a>
+    {% endif %}
+    <a href="{{ url_for('students.list_students') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+  </div>
+</div>
+
+{# Student Info Card #}
+<div class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Student Information</h5>
+    {% if student.status == 'enrolled' %}
+      <span class="badge bg-info fs-6">Enrolled</span>
+    {% elif student.status == 'active' %}
+      <span class="badge bg-success fs-6">Active</span>
+    {% elif student.status == 'completed' %}
+      <span class="badge bg-primary fs-6">Completed</span>
+    {% elif student.status == 'withdrawn' %}
+      <span class="badge bg-secondary fs-6">Withdrawn</span>
+    {% else %}
+      <span class="badge bg-light text-dark fs-6">{{ student.status }}</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">First Name</dt>
+          <dd class="col-sm-8">{{ student.first_name }}</dd>
+
+          <dt class="col-sm-4">Last Name</dt>
+          <dd class="col-sm-8">{{ student.last_name }}</dd>
+
+          <dt class="col-sm-4">Email</dt>
+          <dd class="col-sm-8">{{ student.email or '-' }}</dd>
+
+          <dt class="col-sm-4">Phone</dt>
+          <dd class="col-sm-8">{{ student.phone or '-' }}</dd>
+
+          <dt class="col-sm-4">Date of Birth</dt>
+          <dd class="col-sm-8">{{ student.date_of_birth.strftime('%Y-%m-%d') if student.date_of_birth else '-' }}</dd>
+        </dl>
+      </div>
+      <div class="col-md-6">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Address</dt>
+          <dd class="col-sm-8">{{ student.address or '-' }}</dd>
+
+          <dt class="col-sm-4">License Number</dt>
+          <dd class="col-sm-8">{{ student.license_number or '-' }}</dd>
+
+          <dt class="col-sm-4">Location</dt>
+          <dd class="col-sm-8">{{ student.location.name if student.location else '-' }}</dd>
+
+          <dt class="col-sm-4">Coach</dt>
+          <dd class="col-sm-8">{{ student.assigned_coach.username if student.assigned_coach else '-' }}</dd>
+
+          <dt class="col-sm-4">Enrolled</dt>
+          <dd class="col-sm-8">{{ student.enrollment_date.strftime('%Y-%m-%d') if student.enrollment_date else '-' }}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Notes Section #}
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">Notes</h5>
+  </div>
+  <div class="card-body">
+    <div id="notes-section">
+      {% include "students/partials/_notes.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

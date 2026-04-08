@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Item #{{ item.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Moderation Item #{{ item.id }}</h1>
+  <a href="{{ url_for('moderation.queue') }}" class="btn btn-outline-secondary">
+    Back to Queue
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    {# Item details #}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Details</h5>
+        {% if item.status == 'held' %}
+          <span class="badge bg-warning text-dark">Held</span>
+        {% elif item.status == 'approved' %}
+          <span class="badge bg-success">Approved</span>
+        {% elif item.status == 'rejected' %}
+          <span class="badge bg-danger">Rejected</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ item.status }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Content Type</dt>
+          <dd class="col-sm-8">{{ item.content_type|capitalize }}</dd>
+
+          <dt class="col-sm-4">Content ID</dt>
+          <dd class="col-sm-8">{{ item.content_id }}</dd>
+
+          <dt class="col-sm-4">Reason</dt>
+          <dd class="col-sm-8">{{ item.reason }}</dd>
+
+          <dt class="col-sm-4">Flagged Words</dt>
+          <dd class="col-sm-8">
+            {% if item.flagged_words %}
+              {% for word in item.flagged_words.split(',') %}
+                <span class="badge bg-danger me-1">{{ word.strip() }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">None</span>
+            {% endif %}
+          </dd>
+
+          <dt class="col-sm-4">Status</dt>
+          <dd class="col-sm-8">{{ item.status|capitalize }}</dd>
+
+          <dt class="col-sm-4">Created</dt>
+          <dd class="col-sm-8">{{ item.created_at.strftime('%b %d, %Y at %H:%M') }}</dd>
+
+          {% if item.handler %}
+            <dt class="col-sm-4">Handled By</dt>
+            <dd class="col-sm-8">{{ item.handler.username }}</dd>
+          {% endif %}
+
+          {% if item.handled_at %}
+            <dt class="col-sm-4">Handled At</dt>
+            <dd class="col-sm-8">{{ item.handled_at.strftime('%b %d, %Y at %H:%M') }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {# Actual content #}
+    <div class="card mb-4">
+      <div class="card-header"><h5 class="mb-0">Content</h5></div>
+      <div class="card-body">
+        {% if content_obj %}
+          {% if item.content_type == 'review' %}
+            <p style="white-space: pre-wrap;">{{ content_obj.content }}</p>
+            <hr>
+            <small class="text-muted">
+              Review by {{ content_obj.author.username }} &middot;
+              {{ content_obj.created_at.strftime('%b %d, %Y at %H:%M') }}
+              {% if content_obj.location %}
+                &middot; {{ content_obj.location.name }}
+              {% endif %}
+            </small>
+          {% else %}
+            <p class="text-muted">Content preview not available for type "{{ item.content_type }}".</p>
+          {% endif %}
+        {% else %}
+          <p class="text-muted">Content not found (ID: {{ item.content_id }}).</p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Approve / Reject actions #}
+    {% if item.status == 'held' %}
+      <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Actions</h5></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label for="mod-notes" class="form-label">Notes</label>
+            <input type="text" id="mod-notes" class="form-control"
+                   placeholder="Optional notes for this action">
+          </div>
+          <div class="d-flex gap-2">
+            <form method="post" action="{{ url_for('moderation.approve', item_id=item.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="notes" value="">
+              <button type="submit" class="btn btn-success"
+                      onclick="this.form.querySelector('input[name=notes]').value = document.getElementById('mod-notes').value">
+                Approve
+              </button>
+            </form>
+            <form method="post" action="{{ url_for('moderation.reject', item_id=item.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="notes" value="">
+              <button type="submit" class="btn btn-danger"
+                      onclick="this.form.querySelector('input[name=notes]').value = document.getElementById('mod-notes').value">
+                Reject
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Handling logs #}
+    <div class="card mb-4">
+      <div class="card-header"><h5 class="mb-0">Handling Log</h5></div>
+      <div class="card-body">
+        {% if logs %}
+          <div class="table-responsive">
+            <table class="table table-sm table-bordered mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Action</th>
+                  <th>Performed By</th>
+                  <th>Notes</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                  <tr>
+                    <td>{{ log.action }}</td>
+                    <td>{{ log.performer.username }}</td>
+                    <td>{{ log.notes if log.notes else '-' }}</td>
+                    <td>{{ log.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No handling logs yet.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

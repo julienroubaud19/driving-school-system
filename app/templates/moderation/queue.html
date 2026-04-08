@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Queue - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Moderation Queue</h1>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('moderation.word_list') }}" class="btn btn-outline-secondary">
+      Word List
+    </a>
+    <a href="{{ url_for('moderation.blacklist') }}" class="btn btn-outline-secondary">
+      Blacklist
+    </a>
+  </div>
+</div>
+
+{# Status filter tabs #}
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if current_status == 'held' %}active{% endif %}"
+       hx-get="{{ url_for('moderation.queue', status='held') }}"
+       hx-target="#queue-content"
+       hx-push-url="true"
+       href="{{ url_for('moderation.queue', status='held') }}">
+      Held
+    </a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if current_status == 'approved' %}active{% endif %}"
+       hx-get="{{ url_for('moderation.queue', status='approved') }}"
+       hx-target="#queue-content"
+       hx-push-url="true"
+       href="{{ url_for('moderation.queue', status='approved') }}">
+      Approved
+    </a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if current_status == 'rejected' %}active{% endif %}"
+       hx-get="{{ url_for('moderation.queue', status='rejected') }}"
+       hx-target="#queue-content"
+       hx-push-url="true"
+       href="{{ url_for('moderation.queue', status='rejected') }}">
+      Rejected
+    </a>
+  </li>
+</ul>
+
+<div id="queue-content">
+  {% include "moderation/partials/_queue_table.html" %}
+</div>
+{% endblock %}

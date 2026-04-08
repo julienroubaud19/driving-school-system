@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}User Blacklist - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>User Blacklist</h1>
+  <a href="{{ url_for('moderation.queue') }}" class="btn btn-outline-secondary">
+    Back to Queue
+  </a>
+</div>
+
+{# Add to blacklist form #}
+<div class="card mb-4">
+  <div class="card-header"><h5 class="mb-0">Add User to Blacklist</h5></div>
+  <div class="card-body">
+    <form method="post" action="{{ url_for('moderation.add_blacklist') }}" class="row g-3 align-items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="col-md-4">
+        <label for="user-select" class="form-label">User</label>
+        <select id="user-select" name="user_id" class="form-select" required>
+          <option value="">-- Select User --</option>
+          {% for u in users %}
+            <option value="{{ u.id }}">{{ u.username }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5">
+        <label for="reason-input" class="form-label">Reason</label>
+        <input type="text" id="reason-input" name="reason" class="form-control"
+               placeholder="Reason for blacklisting" required>
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-danger w-100">Blacklist User</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# Blacklist table #}
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>User</th>
+        <th>Reason</th>
+        <th>Blacklisted By</th>
+        <th>Date</th>
+        <th>Expires</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+        <tr>
+          <td>{{ entry.user.username }}</td>
+          <td>{{ entry.reason if entry.reason else '-' }}</td>
+          <td>{{ entry.admin.username }}</td>
+          <td>{{ entry.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+          <td>
+            {% if entry.expires_at %}
+              {{ entry.expires_at.strftime('%b %d, %Y %H:%M') }}
+            {% else %}
+              <span class="text-muted">Never</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted py-4">
+            No blacklisted users.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

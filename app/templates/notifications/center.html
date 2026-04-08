@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Center - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Notification Center</h1>
+  <form method="post" action="{{ url_for('notifications.read_all') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-outline-secondary">
+      Mark All Read
+    </button>
+  </form>
+</div>
+
+{# Filter tabs #}
+<ul class="nav nav-tabs mb-3" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if not request.args.get('read') %}active{% endif %}"
+       hx-get="{{ url_for('notifications.center') }}"
+       hx-target="#notification-content"
+       hx-push-url="true"
+       href="{{ url_for('notifications.center') }}">
+      All
+    </a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if request.args.get('read') == '0' %}active{% endif %}"
+       hx-get="{{ url_for('notifications.center', read='0') }}"
+       hx-target="#notification-content"
+       hx-push-url="true"
+       href="{{ url_for('notifications.center', read='0') }}">
+      Unread
+    </a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a class="nav-link {% if request.args.get('read') == '1' %}active{% endif %}"
+       hx-get="{{ url_for('notifications.center', read='1') }}"
+       hx-target="#notification-content"
+       hx-push-url="true"
+       href="{{ url_for('notifications.center', read='1') }}">
+      Read
+    </a>
+  </li>
+</ul>
+
+<div id="notification-content">
+  {% include "notifications/partials/_notification_list.html" %}
+</div>
+{% endblock %}

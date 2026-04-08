@@ -1,0 +1,126 @@
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>ID</th>
+        <th>Content Type</th>
+        <th>Reason</th>
+        <th>Flagged Words</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items.items %}
+        <tr>
+          <td>{{ item.id }}</td>
+          <td>{{ item.content_type|capitalize }}</td>
+          <td>{{ item.reason }}</td>
+          <td>
+            {% if item.flagged_words %}
+              {% for word in item.flagged_words.split(',') %}
+                <span class="badge bg-danger me-1">{{ word.strip() }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted">-</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.status == 'held' %}
+              <span class="badge bg-warning text-dark">Held</span>
+            {% elif item.status == 'approved' %}
+              <span class="badge bg-success">Approved</span>
+            {% elif item.status == 'rejected' %}
+              <span class="badge bg-danger">Rejected</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ item.status }}</span>
+            {% endif %}
+          </td>
+          <td>{{ item.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+          <td>
+            <div class="d-flex gap-1 align-items-center">
+              <a href="{{ url_for('moderation.detail', item_id=item.id) }}"
+                 class="btn btn-sm btn-outline-secondary" title="View details">
+                View
+              </a>
+              {% if item.status == 'held' %}
+                <form class="d-inline" method="post"
+                      hx-post="{{ url_for('moderation.approve', item_id=item.id) }}"
+                      hx-target="#queue-content"
+                      hx-swap="innerHTML">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="notes" value="">
+                  <button type="submit" class="btn btn-sm btn-success" title="Approve">
+                    Approve
+                  </button>
+                </form>
+                <form class="d-inline" method="post"
+                      hx-post="{{ url_for('moderation.reject', item_id=item.id) }}"
+                      hx-target="#queue-content"
+                      hx-swap="innerHTML">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="notes" value="">
+                  <button type="submit" class="btn btn-sm btn-danger" title="Reject">
+                    Reject
+                  </button>
+                </form>
+              {% endif %}
+            </div>
+            {% if item.status == 'held' %}
+              <div class="mt-1">
+                <input type="text" class="form-control form-control-sm"
+                       placeholder="Notes (optional)"
+                       onchange="this.closest('td').querySelectorAll('input[name=notes]').forEach(i => i.value = this.value)">
+              </div>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            No items in this queue.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{# Pagination #}
+{% if items.pages > 1 %}
+  <nav aria-label="Queue pagination">
+    <ul class="pagination justify-content-center">
+      <li class="page-item {% if not items.has_prev %}disabled{% endif %}">
+        <a class="page-link"
+           hx-get="{{ url_for('moderation.queue', page=items.prev_num, status=request.args.get('status', 'held')) }}"
+           hx-target="#queue-content"
+           href="{{ url_for('moderation.queue', page=items.prev_num, status=request.args.get('status', 'held')) }}">
+          &laquo; Previous
+        </a>
+      </li>
+      {% for page_num in items.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+          <li class="page-item {% if page_num == items.page %}active{% endif %}">
+            <a class="page-link"
+               hx-get="{{ url_for('moderation.queue', page=page_num, status=request.args.get('status', 'held')) }}"
+               hx-target="#queue-content"
+               href="{{ url_for('moderation.queue', page=page_num, status=request.args.get('status', 'held')) }}">
+              {{ page_num }}
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not items.has_next %}disabled{% endif %}">
+        <a class="page-link"
+           hx-get="{{ url_for('moderation.queue', page=items.next_num, status=request.args.get('status', 'held')) }}"
+           hx-target="#queue-content"
+           href="{{ url_for('moderation.queue', page=items.next_num, status=request.args.get('status', 'held')) }}">
+          Next &raquo;
+        </a>
+      </li>
+    </ul>
+  </nav>
+{% endif %}

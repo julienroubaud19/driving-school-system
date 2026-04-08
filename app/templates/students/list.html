@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Students</h1>
+  {% if has_permission('student.create') %}
+    <a href="{{ url_for('students.create') }}" class="btn btn-primary">
+      <i class="bi bi-plus-lg"></i> New Student
+    </a>
+  {% endif %}
+</div>
+
+{# Filter bar #}
+<form id="filter-form" class="row g-3 mb-4"
+      hx-get="{{ url_for('students.list_students') }}"
+      hx-target="#student-table"
+      hx-trigger="change, keyup delay:400ms from:#search-input"
+      hx-include="#filter-form">
+
+  <div class="col-md-3">
+    <label for="location-select" class="form-label">Location</label>
+    <select id="location-select" name="location_id" class="form-select">
+      <option value="">All Locations</option>
+      {% for loc in locations %}
+        <option value="{{ loc.id }}"
+          {% if request.args.get('location_id', type=int) == loc.id %}selected{% endif %}>
+          {{ loc.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <label for="status-select" class="form-label">Status</label>
+    <select id="status-select" name="status" class="form-select">
+      <option value="">All Statuses</option>
+      <option value="enrolled" {% if request.args.get('status') == 'enrolled' %}selected{% endif %}>Enrolled</option>
+      <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>Active</option>
+      <option value="completed" {% if request.args.get('status') == 'completed' %}selected{% endif %}>Completed</option>
+      <option value="withdrawn" {% if request.args.get('status') == 'withdrawn' %}selected{% endif %}>Withdrawn</option>
+    </select>
+  </div>
+
+  <div class="col-md-4">
+    <label for="search-input" class="form-label">Search</label>
+    <input type="text" id="search-input" name="search" class="form-control"
+           placeholder="Search by name or email..."
+           value="{{ request.args.get('search', '') }}">
+  </div>
+
+  <div class="col-md-2 d-flex align-items-end">
+    <button type="submit" class="btn btn-outline-secondary w-100">
+      <i class="bi bi-search"></i> Filter
+    </button>
+  </div>
+</form>
+
+<div id="student-table">
+  {% include "students/partials/_student_table.html" %}
+</div>
+{% endblock %}

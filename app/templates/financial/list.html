@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Transactions</h1>
+    <div>
+        <a href="{{ url_for('financial.bulk_import') }}" class="btn btn-outline-secondary me-2">
+            Import
+        </a>
+        <a href="{{ url_for('financial.closeout') }}" class="btn btn-outline-secondary me-2">
+            Closeout
+        </a>
+        {% if has_permission('financial.create') %}
+        <a href="{{ url_for('financial.create') }}" class="btn btn-primary">
+            New Transaction
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Filter bar ──────────────────────────────────────────────── #}
+<div class="card mb-4">
+    <div class="card-body">
+        <form id="filter-form"
+              hx-get="{{ url_for('financial.list_transactions') }}"
+              hx-target="#transaction-table"
+              hx-trigger="change, keyup changed delay:400ms from:#search-input"
+              hx-push-url="true">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="location_id" class="form-label">Location</label>
+                    <select name="location_id" id="location_id" class="form-select">
+                        <option value="">All Locations</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}"
+                                {% if request.args.get('location_id')|int == loc.id %}selected{% endif %}>
+                            {{ loc.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="type" class="form-label">Type</label>
+                    <select name="type" id="type" class="form-select">
+                        <option value="">All Types</option>
+                        <option value="income" {% if request.args.get('type') == 'income' %}selected{% endif %}>
+                            Income
+                        </option>
+                        <option value="expense" {% if request.args.get('type') == 'expense' %}selected{% endif %}>
+                            Expense
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        <option value="draft" {% if request.args.get('status') == 'draft' %}selected{% endif %}>
+                            Draft
+                        </option>
+                        <option value="active" {% if request.args.get('status') == 'active' %}selected{% endif %}>
+                            Active
+                        </option>
+                        <option value="closed" {% if request.args.get('status') == 'closed' %}selected{% endif %}>
+                            Closed
+                        </option>
+                        <option value="voided" {% if request.args.get('status') == 'voided' %}selected{% endif %}>
+                            Voided
+                        </option>
+                        <option value="reversed" {% if request.args.get('status') == 'reversed' %}selected{% endif %}>
+                            Reversed
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search-input" class="form-label">Search</label>
+                    <input type="text" name="search" id="search-input" class="form-control"
+                           placeholder="Payee or description..."
+                           value="{{ request.args.get('search', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{# ── Transaction table (HTMX swap target) ────────────────────── #}
+<div id="transaction-table">
+    {% include "financial/partials/_transaction_table.html" %}
+</div>
+{% endblock %}

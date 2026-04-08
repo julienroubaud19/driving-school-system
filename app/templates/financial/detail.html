@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction #{{ txn.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Transaction #{{ txn.id }}</h1>
+    <a href="{{ url_for('financial.list_transactions') }}" class="btn btn-outline-secondary">
+        Back to List
+    </a>
+</div>
+
+{# ── Status alert for voided / reversed transactions ─────────── #}
+{% if txn.status == 'voided' %}
+<div class="alert alert-danger">
+    <strong>This transaction has been voided.</strong>
+    {% if txn.void_reason %}
+        <br>Reason: {{ txn.void_reason }}
+    {% endif %}
+    {% if txn.void_approver %}
+        <br>Approved by: {{ txn.void_approver.username }}
+    {% endif %}
+</div>
+{% elif txn.status == 'reversed' %}
+<div class="alert alert-warning">
+    <strong>This transaction has been reversed.</strong>
+    {% if txn.reversals %}
+        <br>Reversal:
+        <a href="{{ url_for('financial.detail', transaction_id=txn.reversals[0].id) }}">
+            Transaction #{{ txn.reversals[0].id }}
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+{# ── Reversal notice ─────────────────────────────────────────── #}
+{% if txn.reversal_of_id %}
+<div class="alert alert-info">
+    This is a reversal of
+    <a href="{{ url_for('financial.detail', transaction_id=txn.reversal_of_id) }}">
+        Transaction #{{ txn.reversal_of_id }}
+    </a>.
+</div>
+{% endif %}
+
+{# ── Transaction detail card ─────────────────────────────────── #}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Details</h5>
+        <div>
+            {% if txn.type == 'income' %}
+                <span class="badge bg-success fs-6">Income</span>
+            {% else %}
+                <span class="badge bg-danger fs-6">Expense</span>
+            {% endif %}
+            {% if txn.status == 'active' %}
+                <span class="badge bg-success fs-6">Active</span>
+            {% elif txn.status == 'draft' %}
+                <span class="badge bg-secondary fs-6">Draft</span>
+            {% elif txn.status == 'closed' %}
+                <span class="badge bg-info fs-6">Closed</span>
+            {% elif txn.status == 'voided' %}
+                <span class="badge bg-danger fs-6">Voided</span>
+            {% elif txn.status == 'reversed' %}
+                <span class="badge bg-warning text-dark fs-6">Reversed</span>
+            {% else %}
+                <span class="badge bg-secondary fs-6">{{ txn.status }}</span>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Amount</th>
+                        <td class="fs-4 fw-bold">${{ '%.2f'|format(txn.amount) }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Payee</th>
+                        <td>{{ txn.payee }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Category</th>
+                        <td>{{ txn.category or '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Payment Method</th>
+                        <td>{{ txn.payment_method or '—' }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 40%;">Location</th>
+                        <td>{{ txn.location.name if txn.location else '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Handled By</th>
+                        <td>{{ txn.handler.username if txn.handler else '—' }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Created</th>
+                        <td>{{ txn.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Last Updated</th>
+                        <td>{{ txn.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {% if txn.description %}
+        <div class="mt-3">
+            <h6 class="text-muted">Description</h6>
+            <p class="mb-0">{{ txn.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Receipt ─────────────────────────────────────────────────── #}
+{% if txn.receipt_path %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Receipt</h5>
+    </div>
+    <div class="card-body">
+        {% set receipt_ext = txn.receipt_path.split('.')[-1]|lower %}
+        {% if receipt_ext in ['jpg', 'jpeg', 'png'] %}
+            <img src="{{ url_for('static', filename=txn.receipt_path) }}"
+                 alt="Receipt" class="img-fluid mb-3" style="max-height: 400px;">
+            <br>
+        {% endif %}
+        <a href="{{ url_for('static', filename=txn.receipt_path) }}"
+           class="btn btn-outline-primary" target="_blank" download>
+            Download Receipt ({{ txn.receipt_path.split('/')[-1] }})
+        </a>
+    </div>
+</div>
+{% endif %}
+
+{# ── Action buttons ──────────────────────────────────────────── #}
+<div class="card mb-4">
+    <div class="card-body d-flex gap-2 flex-wrap">
+        {% if has_permission('financial.edit') and txn.is_editable %}
+        <a href="{{ url_for('financial.edit', transaction_id=txn.id) }}"
+           class="btn btn-primary">
+            Edit Transaction
+        </a>
+        {% endif %}
+
+        {% if has_permission('financial.void') and txn.is_editable %}
+        <a href="{{ url_for('financial.void', transaction_id=txn.id) }}"
+           class="btn btn-danger">
+            Void Transaction
+        </a>
+        <form method="POST" action="{{ url_for('financial.reverse', transaction_id=txn.id) }}"
+              class="d-inline"
+              onsubmit="return confirm('Are you sure you want to create a reversal for this transaction?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-warning">
+                Reverse Transaction
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Version history ─────────────────────────────────────────── #}
+{% if versions %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Version History</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Version</th>
+                        <th>Changes</th>
+                        <th>Changed By</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for version in versions %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-secondary">v{{ version.version_number }}</span>
+                        </td>
+                        <td>
+                            {% set changes = version.get_changes() %}
+                            {% if changes %}
+                                <ul class="list-unstyled mb-0">
+                                    {% for field, vals in changes.items() %}
+                                    <li>
+                                        <strong>{{ field }}:</strong>
+                                        <span class="text-danger">{{ vals[0] }}</span>
+                                        &rarr;
+                                        <span class="text-success">{{ vals[1] }}</span>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <span class="text-muted">No field changes recorded</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ version.changer.username if version.changer else '—' }}</td>
+                        <td>{{ version.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

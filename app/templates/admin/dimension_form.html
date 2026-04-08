@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Dimension' if dimension else 'New Dimension' }} - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ 'Edit Dimension' if dimension else 'New Dimension' }}</h1>
+    <a href="{{ url_for('admin.dimensions') }}" class="btn btn-outline-secondary">
+        Back to Dimensions
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post"
+                      action="{{ url_for('admin.edit_dimension', dim_id=dimension.id) if dimension else url_for('admin.create_dimension') }}">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name (code)</label>
+                        {{ form.name(class="form-control", id="name", placeholder="e.g. safety_awareness") }}
+                        {% if form.name.errors %}
+                            {% for error in form.name.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="label" class="form-label">Display Label</label>
+                        {{ form.label(class="form-control", id="label", placeholder="e.g. Safety Awareness") }}
+                        {% if form.label.errors %}
+                            {% for error in form.label.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="sort_order" class="form-label">Sort Order</label>
+                        {{ form.sort_order(class="form-control", id="sort_order", placeholder="0") }}
+                        {% if form.sort_order.errors %}
+                            {% for error in form.sort_order.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        {{ form.is_active(class="form-check-input", id="is_active") }}
+                        <label for="is_active" class="form-check-label">Active</label>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            {{ 'Update Dimension' if dimension else 'Create Dimension' }}
+                        </button>
+                        <a href="{{ url_for('admin.dimensions') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

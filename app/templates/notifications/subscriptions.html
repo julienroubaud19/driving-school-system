@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Notification Preferences - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Notification Preferences</h1>
+  <a href="{{ url_for('notifications.center') }}" class="btn btn-outline-secondary">
+    Back to Notifications
+  </a>
+</div>
+
+<form method="post" action="{{ url_for('notifications.subscriptions') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Notification Type</th>
+          <th class="text-center">Subscribed</th>
+          <th class="text-center">Digest Mode</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for nt in types %}
+          {% set sub = subs.get(nt.id) %}
+          <tr>
+            <td>
+              <strong>{{ nt.label }}</strong>
+              {% if nt.description %}
+                <br><small class="text-muted">{{ nt.description }}</small>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <div class="form-check d-flex justify-content-center">
+                <input class="form-check-input" type="checkbox"
+                       name="sub_{{ nt.id }}" id="sub_{{ nt.id }}"
+                       {% if not sub or sub.is_active %}checked{% endif %}>
+              </div>
+            </td>
+            <td class="text-center">
+              <div class="form-check d-flex justify-content-center">
+                <input class="form-check-input" type="checkbox"
+                       name="digest_{{ nt.id }}" id="digest_{{ nt.id }}"
+                       {% if sub and sub.digest_mode %}checked{% endif %}>
+              </div>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="3" class="text-center text-muted py-4">No notification types configured.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="mt-3">
+    <button type="submit" class="btn btn-primary">Save Preferences</button>
+  </div>
+</form>
+{% endblock %}

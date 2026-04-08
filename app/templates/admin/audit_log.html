@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Audit Log</h1>
+</div>
+
+{# -- Filters ----------------------------------------------------------- #}
+<form id="audit-filters" class="row g-3 mb-4"
+      hx-get="{{ url_for('admin.audit_log') }}"
+      hx-target="#audit-table"
+      hx-trigger="change"
+      hx-include="#audit-filters">
+
+    <div class="col-md-4">
+        <label for="event-type-filter" class="form-label">Event Type</label>
+        <select id="event-type-filter" name="event_type" class="form-select">
+            <option value="">All Events</option>
+            {% for et in event_types %}
+                <option value="{{ et }}"
+                    {% if request.args.get('event_type') == et %}selected{% endif %}>
+                    {{ et }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-4">
+        <label for="user-filter" class="form-label">User</label>
+        <select id="user-filter" name="user_id" class="form-select">
+            <option value="">All Users</option>
+            {% for u in users %}
+                <option value="{{ u.id }}"
+                    {% if request.args.get('user_id', type=int) == u.id %}selected{% endif %}>
+                    {{ u.username }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end">
+        <button type="submit" class="btn btn-outline-primary w-100">
+            Apply Filters
+        </button>
+    </div>
+</form>
+
+{# -- Audit Table -------------------------------------------------------- #}
+<div id="audit-table">
+    {% include "admin/partials/_audit_table.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>{{ title }}</h1>
+            <a href="{{ url_for('financial.list_transactions') }}" class="btn btn-outline-secondary">
+                Back to List
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="type" class="form-label">{{ form.type.label.text }}</label>
+                            {{ form.type(class="form-select", id="type") }}
+                            {% for error in form.type.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="amount" class="form-label">{{ form.amount.label.text }}</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                {{ form.amount(class="form-control", id="amount", step="0.01", min="0.01") }}
+                            </div>
+                            {% for error in form.amount.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payee" class="form-label">{{ form.payee.label.text }}</label>
+                        {{ form.payee(class="form-control", id="payee", placeholder="Enter payee name") }}
+                        {% for error in form.payee.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">{{ form.description.label.text }}</label>
+                        {{ form.description(class="form-control", id="description", rows="3", placeholder="Optional description") }}
+                        {% for error in form.description.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="category" class="form-label">{{ form.category.label.text }}</label>
+                            {{ form.category(class="form-control", id="category", placeholder="e.g. Tuition, Fuel, Supplies") }}
+                            {% for error in form.category.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="payment_method" class="form-label">{{ form.payment_method.label.text }}</label>
+                            {{ form.payment_method(class="form-select", id="payment_method") }}
+                            {% for error in form.payment_method.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="location_id" class="form-label">{{ form.location_id.label.text }}</label>
+                        {{ form.location_id(class="form-select", id="location_id") }}
+                        {% for error in form.location_id.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="receipt" class="form-label">{{ form.receipt.label.text }}</label>
+                        {{ form.receipt(class="form-control", id="receipt", accept=".jpg,.jpeg,.png,.pdf") }}
+                        <div class="form-text">Accepted formats: JPG, PNG, PDF</div>
+                        {% for error in form.receipt.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                        {% if txn and txn.receipt_path %}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Current receipt:
+                                <a href="{{ url_for('static', filename=txn.receipt_path) }}" target="_blank">
+                                    {{ txn.receipt_path.split('/')[-1] }}
+                                </a>
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('financial.list_transactions') }}" class="btn btn-secondary">Cancel</a>
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

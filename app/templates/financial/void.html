@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Void Transaction #{{ txn.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <h1 class="mb-4">Void Transaction</h1>
+
+        {# ── Transaction summary ─────────────────────────────── #}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Transaction Summary</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tr>
+                        <th class="text-muted" style="width: 35%;">ID</th>
+                        <td>#{{ txn.id }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Type</th>
+                        <td>
+                            {% if txn.type == 'income' %}
+                                <span class="badge bg-success">Income</span>
+                            {% else %}
+                                <span class="badge bg-danger">Expense</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Amount</th>
+                        <td class="fw-bold">${{ '%.2f'|format(txn.amount) }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Payee</th>
+                        <td>{{ txn.payee }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Date</th>
+                        <td>{{ txn.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Location</th>
+                        <td>{{ txn.location.name if txn.location else '—' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        {# ── Void form ───────────────────────────────────────── #}
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">Confirm Void</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-danger">
+                    This action cannot be undone. The transaction will be permanently marked as voided.
+                </p>
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">{{ form.reason.label.text }}</label>
+                        {{ form.reason(class="form-control", id="reason", rows="4", placeholder="Explain why this transaction is being voided...") }}
+                        {% for error in form.reason.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('financial.detail', transaction_id=txn.id) }}"
+                           class="btn btn-secondary">
+                            Cancel
+                        </a>
+                        {{ form.submit(class="btn btn-danger") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Write Review - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Write Review</h1>
+  <a href="{{ url_for('reviews.list_reviews') }}" class="btn btn-outline-secondary">
+    Back to Reviews
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    <form method="post" enctype="multipart/form-data">
+      {{ form.hidden_tag() }}
+
+      {# Review content #}
+      <div class="mb-3">
+        {{ form.content.label(class="form-label") }}
+        {{ form.content(class="form-control" + (" is-invalid" if form.content.errors else ""), rows=5, placeholder="Write your review...") }}
+        {% for error in form.content.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      {# Location #}
+      <div class="mb-3">
+        {{ form.location_id.label(class="form-label") }}
+        {{ form.location_id(class="form-select" + (" is-invalid" if form.location_id.errors else "")) }}
+        {% for error in form.location_id.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      {# Coach #}
+      <div class="mb-3">
+        {{ form.coach_id.label(class="form-label") }}
+        {{ form.coach_id(class="form-select" + (" is-invalid" if form.coach_id.errors else "")) }}
+        {% for error in form.coach_id.errors %}
+          <div class="invalid-feedback">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      {# Rating dimensions #}
+      {% if dimensions %}
+        <div class="card mb-3">
+          <div class="card-header">
+            <h5 class="mb-0">Ratings</h5>
+          </div>
+          <div class="card-body">
+            {% for dim in dimensions %}
+              <div class="mb-3">
+                <label class="form-label">{{ dim.label }}</label>
+                <div class="d-flex gap-3">
+                  {% for val in range(1, 6) %}
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio"
+                             name="score_{{ dim.id }}" id="score_{{ dim.id }}_{{ val }}"
+                             value="{{ val }}">
+                      <label class="form-check-label" for="score_{{ dim.id }}_{{ val }}">
+                        {{ val }} &#9733;
+                      </label>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {# Image upload #}
+      <div class="mb-3">
+        {{ form.images.label(class="form-label") }}
+        {{ form.images(class="form-control", multiple=true, accept="image/jpeg,image/png") }}
+        <div class="form-text">You can upload multiple JPG or PNG images.</div>
+        {% for error in form.images.errors %}
+          <div class="text-danger small">{{ error }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="mt-4">
+        {{ form.submit(class="btn btn-primary") }}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

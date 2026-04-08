@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Review #{{ review.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Review #{{ review.id }}</h1>
+  <a href="{{ url_for('reviews.list_reviews') }}" class="btn btn-outline-secondary">
+    Back to Reviews
+  </a>
+</div>
+
+<div class="row">
+  {# Main review content #}
+  <div class="col-lg-8">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>
+          By <strong>{{ review.author.username }}</strong>
+          &middot;
+          {{ review.created_at.strftime('%b %d, %Y at %H:%M') }}
+        </span>
+        {% if review.status == 'approved' %}
+          <span class="badge bg-success">Approved</span>
+        {% elif review.status == 'pending' %}
+          <span class="badge bg-warning text-dark">Pending</span>
+        {% elif review.status == 'rejected' %}
+          <span class="badge bg-danger">Rejected</span>
+        {% elif review.status == 'disputed' %}
+          <span class="badge bg-info">Disputed</span>
+        {% else %}
+          <span class="badge bg-secondary">{{ review.status }}</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <p class="card-text" style="white-space: pre-wrap;">{{ review.content }}</p>
+
+        {% if review.location %}
+          <p class="text-muted mb-1">
+            <strong>Location:</strong> {{ review.location.name }}
+          </p>
+        {% endif %}
+        {% if review.coach %}
+          <p class="text-muted mb-1">
+            <strong>Coach:</strong> {{ review.coach.username }}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Rating scores by dimension #}
+    {% if review.scores %}
+      <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Ratings</h5></div>
+        <div class="card-body">
+          {% for score in review.scores %}
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>{{ score.dimension.label }}</span>
+              <span>
+                {% for i in range(1, 6) %}
+                  {% if i <= score.score %}
+                    <span class="text-warning">&#9733;</span>
+                  {% else %}
+                    <span class="text-muted">&#9734;</span>
+                  {% endif %}
+                {% endfor %}
+                <small class="text-muted ms-1">({{ score.score }}/5)</small>
+              </span>
+            </div>
+          {% endfor %}
+          <hr>
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>Average</strong>
+            <span>
+              {% set avg = review.average_score %}
+              {% for i in range(1, 6) %}
+                {% if i <= avg|round(0, 'floor')|int %}
+                  <span class="text-warning">&#9733;</span>
+                {% else %}
+                  <span class="text-muted">&#9734;</span>
+                {% endif %}
+              {% endfor %}
+              <small class="text-muted ms-1">({{ '%.1f'|format(avg) }})</small>
+            </span>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Image gallery #}
+    {% if review.images %}
+      <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Images</h5></div>
+        <div class="card-body">
+          <div class="row g-3">
+            {% for img in review.images %}
+              <div class="col-6 col-md-4">
+                <a href="{{ url_for('static', filename=img.file_path) }}" target="_blank">
+                  <img src="{{ url_for('static', filename=img.file_path) }}"
+                       class="img-fluid rounded" alt="Review image">
+                </a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Actions: Like, Report, Dispute #}
+    <div class="d-flex align-items-center gap-3 mb-4">
+      {# Like button #}
+      <div id="like-btn">
+        {% include "reviews/partials/_like_button.html" %}
+      </div>
+
+      {# Report button #}
+      <button class="btn btn-outline-warning btn-sm" type="button"
+              data-bs-toggle="collapse" data-bs-target="#report-form"
+              aria-expanded="false" aria-controls="report-form">
+        Report
+      </button>
+
+      {# Dispute button #}
+      {% if has_permission('review.dispute') %}
+        <a href="{{ url_for('reviews.dispute', review_id=review.id) }}"
+           class="btn btn-outline-danger btn-sm">
+          Dispute
+        </a>
+      {% endif %}
+    </div>
+
+    {# Report form (collapsible) #}
+    <div class="collapse mb-4" id="report-form">
+      <div class="card card-body">
+        <h6>Report this Review</h6>
+        <form method="post" action="{{ url_for('reviews.report', review_id=review.id) }}">
+          {{ report_form.hidden_tag() }}
+          <div class="mb-3">
+            {{ report_form.reason.label(class="form-label") }}
+            {{ report_form.reason(class="form-control" + (" is-invalid" if report_form.reason.errors else ""), rows=3, placeholder="Describe why you are reporting this review...") }}
+            {% for error in report_form.reason.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+          {{ report_form.submit(class="btn btn-warning btn-sm") }}
+        </form>
+      </div>
+    </div>
+
+    {# Disputes list #}
+    {% if review.disputes %}
+      <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Disputes</h5></div>
+        <ul class="list-group list-group-flush">
+          {% for d in review.disputes %}
+            <li class="list-group-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <strong>Dispute #{{ d.id }}</strong>
+                  <span class="ms-2">
+                    {% if d.status == 'open' %}
+                      <span class="badge bg-warning text-dark">Open</span>
+                    {% elif d.status == 'under_review' %}
+                      <span class="badge bg-info">Under Review</span>
+                    {% elif d.status == 'resolved' %}
+                      <span class="badge bg-success">Resolved</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ d.status }}</span>
+                    {% endif %}
+                  </span>
+                  <p class="mb-1 mt-1">{{ d.statement|truncate(200) }}</p>
+                  <small class="text-muted">
+                    Filed by {{ d.initiator.username }} on
+                    {{ d.created_at.strftime('%b %d, %Y at %H:%M') }}
+                  </small>
+                </div>
+                {% if has_permission('review.moderate') and d.status != 'resolved' %}
+                  <a href="{{ url_for('reviews.arbitrate', dispute_id=d.id) }}"
+                     class="btn btn-sm btn-outline-primary">
+                    Arbitrate
+                  </a>
+                {% endif %}
+              </div>
+              {% if d.arbitration_outcome %}
+                <div class="mt-2 p-2 bg-light rounded">
+                  <small class="text-muted">Outcome:</small>
+                  <p class="mb-0">{{ d.arbitration_outcome }}</p>
+                  {% if d.arbitrator %}
+                    <small class="text-muted">
+                      Resolved by {{ d.arbitrator.username }}
+                      {% if d.resolved_at %}
+                        on {{ d.resolved_at.strftime('%b %d, %Y at %H:%M') }}
+                      {% endif %}
+                    </small>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+
+  {# Sidebar summary #}
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><h6 class="mb-0">Summary</h6></div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Status</span>
+          <span>{{ review.status|capitalize }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Average Score</span>
+          <span>{{ '%.1f'|format(review.average_score) }} / 5</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Likes</span>
+          <span>{{ review.like_count }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Images</span>
+          <span>{{ review.images|length }}</span>
+        </li>
+        <li class="list-group-item d-flex justify-content-between">
+          <span>Disputes</span>
+          <span>{{ review.disputes|length }}</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

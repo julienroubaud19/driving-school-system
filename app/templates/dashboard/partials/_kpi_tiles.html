@@ -1,0 +1,182 @@
+<div class="row g-4 mb-4">
+
+    {# ── 1. Approval Turnaround ──────────────────────────────── #}
+    <div class="col-12 col-md-6 col-xl">
+        <div class="card h-100 shadow-sm border-start border-primary border-4"
+             role="button"
+             hx-get="{{ url_for('dashboard.drilldown', kpi='turnaround') }}?{{ request.query_string.decode('utf-8') }}"
+             hx-target="#drilldown"
+             hx-swap="innerHTML">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Approval Turnaround</h6>
+                <h2 class="card-title mb-1">
+                    {{ turnaround.avg_hours | default(0, true) | round(1) }}
+                    <small class="fs-6 text-muted">hrs avg</small>
+                </h2>
+                <p class="card-text text-muted mb-0">
+                    {{ turnaround.count | default(0, true) }} items processed
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <form method="post" action="{{ url_for('dashboard.export', report_name='turnaround') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="location_id" value="{{ request.args.get('location_id', '') }}">
+                    <input type="hidden" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                    <input type="hidden" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="event.stopPropagation();">
+                        Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── 2. Coach Utilization ────────────────────────────────── #}
+    <div class="col-12 col-md-6 col-xl">
+        <div class="card h-100 shadow-sm border-start border-success border-4"
+             role="button"
+             hx-get="{{ url_for('dashboard.drilldown', kpi='utilization') }}?{{ request.query_string.decode('utf-8') }}"
+             hx-target="#drilldown"
+             hx-swap="innerHTML">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Coach Utilization</h6>
+                {% if utilization %}
+                    <ul class="list-unstyled mb-0">
+                        {% for coach in utilization[:5] %}
+                        <li class="d-flex justify-content-between">
+                            <span>{{ coach.coach_name }}</span>
+                            <span class="badge bg-success rounded-pill">{{ coach.student_count }} students</span>
+                        </li>
+                        {% endfor %}
+                        {% if utilization | length > 5 %}
+                        <li class="text-muted small mt-1">+ {{ utilization | length - 5 }} more...</li>
+                        {% endif %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted mb-0">No data available</p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <form method="post" action="{{ url_for('dashboard.export', report_name='utilization') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="location_id" value="{{ request.args.get('location_id', '') }}">
+                    <input type="hidden" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                    <input type="hidden" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="event.stopPropagation();">
+                        Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── 3. Retention Rate ───────────────────────────────────── #}
+    <div class="col-12 col-md-6 col-xl">
+        <div class="card h-100 shadow-sm border-start border-info border-4"
+             role="button"
+             hx-get="{{ url_for('dashboard.drilldown', kpi='retention') }}?{{ request.query_string.decode('utf-8') }}"
+             hx-target="#drilldown"
+             hx-swap="innerHTML">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Retention Rate</h6>
+                <h2 class="card-title mb-1">
+                    {{ retention.retention_pct | default(0, true) | round(1) }}%
+                </h2>
+                <p class="card-text text-muted mb-0">
+                    {{ retention.total | default(0, true) }} total &middot;
+                    {{ retention.active | default(0, true) }} active &middot;
+                    {{ retention.withdrawn | default(0, true) }} withdrawn
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <form method="post" action="{{ url_for('dashboard.export', report_name='retention') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="location_id" value="{{ request.args.get('location_id', '') }}">
+                    <input type="hidden" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                    <input type="hidden" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="event.stopPropagation();">
+                        Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── 4. Community Activity ───────────────────────────────── #}
+    <div class="col-12 col-md-6 col-xl">
+        <div class="card h-100 shadow-sm border-start border-warning border-4"
+             role="button"
+             hx-get="{{ url_for('dashboard.drilldown', kpi='community') }}?{{ request.query_string.decode('utf-8') }}"
+             hx-target="#drilldown"
+             hx-swap="innerHTML">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Community Activity</h6>
+                <h2 class="card-title mb-1">
+                    {{ community.total_reviews | default(0, true) }}
+                    <small class="fs-6 text-muted">reviews</small>
+                </h2>
+                <p class="card-text text-muted mb-0">
+                    {{ community.approved_reviews | default(0, true) }} approved &middot;
+                    {{ community.total_disputes | default(0, true) }} disputes
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <form method="post" action="{{ url_for('dashboard.export', report_name='community') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="location_id" value="{{ request.args.get('location_id', '') }}">
+                    <input type="hidden" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                    <input type="hidden" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="event.stopPropagation();">
+                        Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {# ── 5. Financial Summary ────────────────────────────────── #}
+    <div class="col-12 col-md-6 col-xl">
+        <div class="card h-100 shadow-sm border-start border-danger border-4"
+             role="button"
+             hx-get="{{ url_for('dashboard.drilldown', kpi='financial') }}?{{ request.query_string.decode('utf-8') }}"
+             hx-target="#drilldown"
+             hx-swap="innerHTML">
+            <div class="card-body">
+                <h6 class="card-subtitle mb-2 text-muted">Financial Summary</h6>
+                <ul class="list-unstyled mb-0">
+                    <li class="d-flex justify-content-between">
+                        <span class="text-muted">Income</span>
+                        <span class="text-success fw-bold">${{ financial.total_income | default(0, true) | round(2) }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between">
+                        <span class="text-muted">Expenses</span>
+                        <span class="text-danger fw-bold">${{ financial.total_expenses | default(0, true) | round(2) }}</span>
+                    </li>
+                    <li class="d-flex justify-content-between border-top pt-1 mt-1">
+                        <span class="text-muted">Net</span>
+                        <span class="fw-bold {% if financial.net | default(0, true) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ${{ financial.net | default(0, true) | round(2) }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-footer bg-transparent border-top-0 text-end">
+                <form method="post" action="{{ url_for('dashboard.export', report_name='financial') }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="location_id" value="{{ request.args.get('location_id', '') }}">
+                    <input type="hidden" name="date_from" value="{{ request.args.get('date_from', '') }}">
+                    <input type="hidden" name="date_to" value="{{ request.args.get('date_to', '') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                            onclick="event.stopPropagation();">
+                        Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>

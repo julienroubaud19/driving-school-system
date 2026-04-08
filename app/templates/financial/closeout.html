@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Closeout - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Monthly Closeout</h1>
+    <a href="{{ url_for('financial.list_transactions') }}" class="btn btn-outline-secondary">
+        Back to Transactions
+    </a>
+</div>
+
+{# -- Closeout form ------------------------------------------------- #}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Close a Month</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="location_id" class="form-label">{{ form.location_id.label.text }}</label>
+                            {{ form.location_id(class="form-select", id="location_id") }}
+                            {% for error in form.location_id.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="month" class="form-label">{{ form.month.label.text }}</label>
+                            {{ form.month(class="form-control", id="month", placeholder="1-12", min="1", max="12") }}
+                            {% for error in form.month.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-4">
+                            <label for="year" class="form-label">{{ form.year.label.text }}</label>
+                            {{ form.year(class="form-control", id="year", placeholder="e.g. 2026", min="2000", max="2100") }}
+                            {% for error in form.year.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {# -- Recent closeouts table --------------------------------- #}
+        {% if closeouts %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Closeouts</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Location</th>
+                                <th>Month</th>
+                                <th>Year</th>
+                                <th>Closed By</th>
+                                <th>Closed At</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for co in closeouts %}
+                            <tr>
+                                <td>{{ co.id }}</td>
+                                <td>{{ co.location.name if co.location else '—' }}</td>
+                                <td>{{ co.month }}</td>
+                                <td>{{ co.year }}</td>
+                                <td>{{ co.closer.username if co.closer else '—' }}</td>
+                                <td>{{ co.closed_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ co.status|capitalize }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <p class="text-muted text-center">No closeouts recorded yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

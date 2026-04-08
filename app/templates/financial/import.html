@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Import Transactions - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Import Transactions</h1>
+    <a href="{{ url_for('financial.list_transactions') }}" class="btn btn-outline-secondary">
+        Back to Transactions
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        {# -- Instructions ------------------------------------------- #}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Import Instructions</h5>
+            </div>
+            <div class="card-body">
+                <p>Upload a CSV or Excel file to bulk-import transactions. The file must contain the following columns:</p>
+                <ul class="mb-3">
+                    <li><strong>type</strong> &mdash; <code>income</code> or <code>expense</code></li>
+                    <li><strong>amount</strong> &mdash; numeric value (e.g. <code>150.00</code>)</li>
+                    <li><strong>payee</strong> &mdash; name of the payee</li>
+                    <li><strong>category</strong> &mdash; transaction category (optional)</li>
+                    <li><strong>payment_method</strong> &mdash; <code>cash</code>, <code>card</code>, <code>transfer</code>, or <code>check</code> (optional)</li>
+                    <li><strong>description</strong> &mdash; free-text description (optional)</li>
+                    <li><strong>location_id</strong> &mdash; numeric ID of the location</li>
+                    <li><strong>date</strong> &mdash; transaction date in <code>YYYY-MM-DD</code> format (optional)</li>
+                </ul>
+                <div class="alert alert-info mb-0">
+                    <strong>Tip:</strong> The first row of your file should be the column headers.
+                    Duplicate detection is performed automatically based on amount, payee, date, and location.
+                </div>
+            </div>
+        </div>
+
+        {# -- Upload form -------------------------------------------- #}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Upload File</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+
+                    <div class="mb-3">
+                        <label for="file" class="form-label">{{ form.file.label.text }}</label>
+                        {{ form.file(class="form-control", id="file", accept=".csv,.xlsx,.xls") }}
+                        <div class="form-text">Accepted formats: CSV (.csv), Excel (.xlsx, .xls)</div>
+                        {% for error in form.file.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

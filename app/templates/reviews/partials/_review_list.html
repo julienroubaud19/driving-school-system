@@ -1,0 +1,104 @@
+<div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+  {% for review in reviews.items %}
+    <div class="col">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5 class="card-title mb-0">
+              <a href="{{ url_for('reviews.detail', review_id=review.id) }}" class="text-decoration-none">
+                Review #{{ review.id }}
+              </a>
+            </h5>
+            {# Status badge #}
+            {% if review.status == 'approved' %}
+              <span class="badge bg-success">Approved</span>
+            {% elif review.status == 'pending' %}
+              <span class="badge bg-warning text-dark">Pending</span>
+            {% elif review.status == 'rejected' %}
+              <span class="badge bg-danger">Rejected</span>
+            {% elif review.status == 'disputed' %}
+              <span class="badge bg-info">Disputed</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ review.status }}</span>
+            {% endif %}
+          </div>
+
+          <p class="card-text text-muted">
+            {{ review.content|truncate(150) }}
+          </p>
+
+          {# Star rating #}
+          <div class="mb-2">
+            {% set avg = review.average_score %}
+            {% for i in range(1, 6) %}
+              {% if i <= avg|round(0, 'floor')|int %}
+                <span class="text-warning">&#9733;</span>
+              {% elif i - avg < 1 and i - avg > 0 %}
+                <span class="text-warning">&#9733;</span>
+              {% else %}
+                <span class="text-muted">&#9734;</span>
+              {% endif %}
+            {% endfor %}
+            <small class="text-muted ms-1">({{ '%.1f'|format(avg) }})</small>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+              By {{ review.author.username }} &middot;
+              {{ review.location.name if review.location else '' }}
+            </small>
+            <small class="text-muted">
+              {{ review.like_count }} like{{ 's' if review.like_count != 1 else '' }}
+            </small>
+          </div>
+
+          <small class="text-muted">
+            {{ review.created_at.strftime('%b %d, %Y') }}
+          </small>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="text-center text-muted py-4">No reviews found.</div>
+    </div>
+  {% endfor %}
+</div>
+
+{# Pagination #}
+{% if reviews.pages > 1 %}
+  <nav aria-label="Review pagination">
+    <ul class="pagination justify-content-center">
+      <li class="page-item {% if not reviews.has_prev %}disabled{% endif %}">
+        <a class="page-link"
+           hx-get="{{ url_for('reviews.list_reviews', page=reviews.prev_num, **request.args) }}"
+           hx-target="#review-list"
+           href="{{ url_for('reviews.list_reviews', page=reviews.prev_num, **request.args) }}">
+          &laquo; Previous
+        </a>
+      </li>
+      {% for page_num in reviews.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+          <li class="page-item {% if page_num == reviews.page %}active{% endif %}">
+            <a class="page-link"
+               hx-get="{{ url_for('reviews.list_reviews', page=page_num, **request.args) }}"
+               hx-target="#review-list"
+               href="{{ url_for('reviews.list_reviews', page=page_num, **request.args) }}">
+              {{ page_num }}
+            </a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not reviews.has_next %}disabled{% endif %}">
+        <a class="page-link"
+           hx-get="{{ url_for('reviews.list_reviews', page=reviews.next_num, **request.args) }}"
+           hx-target="#review-list"
+           href="{{ url_for('reviews.list_reviews', page=reviews.next_num, **request.args) }}">
+          Next &raquo;
+        </a>
+      </li>
+    </ul>
+  </nav>
+{% endif %}

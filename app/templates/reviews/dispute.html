@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Dispute Review #{{ review.id }} - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Dispute Review #{{ review.id }}</h1>
+  <a href="{{ url_for('reviews.detail', review_id=review.id) }}" class="btn btn-outline-secondary">
+    Back to Review
+  </a>
+</div>
+
+<div class="row">
+  <div class="col-lg-8">
+    {# Review being disputed #}
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">Review Under Dispute</h5>
+      </div>
+      <div class="card-body">
+        <p class="mb-2" style="white-space: pre-wrap;">{{ review.content }}</p>
+        <small class="text-muted">
+          By {{ review.author.username }} &middot;
+          {{ review.created_at.strftime('%b %d, %Y at %H:%M') }}
+          {% if review.location %}
+            &middot; {{ review.location.name }}
+          {% endif %}
+        </small>
+      </div>
+    </div>
+
+    {# Dispute form #}
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Submit Dispute</h5>
+      </div>
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          {{ form.hidden_tag() }}
+
+          <div class="mb-3">
+            {{ form.statement.label(class="form-label") }}
+            {{ form.statement(class="form-control" + (" is-invalid" if form.statement.errors else ""), rows=5, placeholder="Explain why you are disputing this review...") }}
+            {% for error in form.statement.errors %}
+              <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mb-3">
+            {{ form.evidence.label(class="form-label") }}
+            {{ form.evidence(class="form-control", multiple=true, accept="image/jpeg,image/png,application/pdf") }}
+            <div class="form-text">
+              Upload supporting evidence (JPG, PNG, or PDF). You can select multiple files.
+            </div>
+            {% for error in form.evidence.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+
+          <div class="mt-4">
+            {{ form.submit(class="btn btn-danger") }}
+            <a href="{{ url_for('reviews.detail', review_id=review.id) }}"
+               class="btn btn-outline-secondary ms-2">
+              Cancel
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

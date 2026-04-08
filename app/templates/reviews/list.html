@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Reviews - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Reviews</h1>
+  {% if has_permission('review.create') %}
+    <a href="{{ url_for('reviews.create') }}" class="btn btn-primary">
+      Write Review
+    </a>
+  {% endif %}
+</div>
+
+{# Filters #}
+<form id="review-filter-form" class="row g-3 mb-4"
+      hx-get="{{ url_for('reviews.list_reviews') }}"
+      hx-target="#review-list"
+      hx-trigger="change"
+      hx-include="#review-filter-form">
+
+  <div class="col-md-3">
+    <label for="status-select" class="form-label">Status</label>
+    <select id="status-select" name="status" class="form-select">
+      <option value="">All Statuses</option>
+      <option value="approved" {% if request.args.get('status', 'approved') == 'approved' %}selected{% endif %}>Approved</option>
+      <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+      <option value="rejected" {% if request.args.get('status') == 'rejected' %}selected{% endif %}>Rejected</option>
+      <option value="disputed" {% if request.args.get('status') == 'disputed' %}selected{% endif %}>Disputed</option>
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <label for="location-select" class="form-label">Location</label>
+    <select id="location-select" name="location_id" class="form-select">
+      <option value="">All Locations</option>
+      {% for loc in locations %}
+        <option value="{{ loc.id }}"
+          {% if request.args.get('location_id', type=int) == loc.id %}selected{% endif %}>
+          {{ loc.name }}
+        </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3">
+    <label for="coach-select" class="form-label">Coach</label>
+    <select id="coach-select" name="coach_id" class="form-select">
+      <option value="">All Coaches</option>
+      {# Coaches are populated from the reviews already loaded; collect unique coaches #}
+      {% set seen_coaches = [] %}
+      {% for r in reviews.items %}
+        {% if r.coach and r.coach.id not in seen_coaches %}
+          {{ seen_coaches.append(r.coach.id) or '' }}
+          <option value="{{ r.coach.id }}"
+            {% if request.args.get('coach_id', type=int) == r.coach.id %}selected{% endif %}>
+            {{ r.coach.username }}
+          </option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-md-3 d-flex align-items-end">
+    <button type="submit" class="btn btn-outline-secondary w-100">
+      Filter
+    </button>
+  </div>
+</form>
+
+<div id="review-list">
+  {% include "reviews/partials/_review_list.html" %}
+</div>
+{% endblock %}

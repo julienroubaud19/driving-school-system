@@ -1,0 +1,85 @@
+{% for row in rows %}
+<tr>
+    <td>{{ row.row_number }}</td>
+    <td>
+        {% set data = row.get_data() %}
+        {% if data %}
+            <small class="text-muted">
+                {% for key, value in data.items() %}
+                    <strong>{{ key }}:</strong> {{ value }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </small>
+        {% else %}
+            <span class="text-muted">—</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if row.status == 'pending' %}
+            <span class="badge bg-info">Pending</span>
+        {% elif row.status == 'imported' %}
+            <span class="badge bg-success">Imported</span>
+        {% elif row.status == 'error' %}
+            <span class="badge bg-danger">Error</span>
+        {% elif row.status == 'duplicate' %}
+            <span class="badge bg-warning text-dark">Duplicate</span>
+        {% else %}
+            <span class="badge bg-secondary">{{ row.status }}</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if row.error_message %}
+            <small class="text-danger">{{ row.error_message }}</small>
+        {% elif row.status == 'duplicate' and row.matched_transaction %}
+            <small class="text-warning">
+                Matches Transaction
+                <a href="{{ url_for('financial.detail', transaction_id=row.matched_transaction_id) }}">
+                    #{{ row.matched_transaction_id }}
+                </a>
+            </small>
+            {% if row.resolution %}
+                <br><small class="text-muted">Resolution: <strong>{{ row.resolution }}</strong></small>
+            {% endif %}
+        {% else %}
+            <span class="text-muted">—</span>
+        {% endif %}
+    </td>
+    <td>
+        {% if row.status == 'duplicate' and not row.resolution %}
+            <div class="btn-group btn-group-sm" role="group">
+                <button class="btn btn-outline-primary"
+                        hx-post="{{ url_for('financial.resolve_duplicate', batch_id=batch.id, row_id=row.id) }}"
+                        hx-vals='{"resolution": "merge"}'
+                        hx-target="#import-rows"
+                        hx-swap="innerHTML"
+                        title="Merge with existing transaction">
+                    Merge
+                </button>
+                <button class="btn btn-outline-success"
+                        hx-post="{{ url_for('financial.resolve_duplicate', batch_id=batch.id, row_id=row.id) }}"
+                        hx-vals='{"resolution": "keep"}'
+                        hx-target="#import-rows"
+                        hx-swap="innerHTML"
+                        title="Import as new transaction">
+                    Keep
+                </button>
+                <button class="btn btn-outline-secondary"
+                        hx-post="{{ url_for('financial.resolve_duplicate', batch_id=batch.id, row_id=row.id) }}"
+                        hx-vals='{"resolution": "skip"}'
+                        hx-target="#import-rows"
+                        hx-swap="innerHTML"
+                        title="Skip this row">
+                    Skip
+                </button>
+            </div>
+        {% elif row.status == 'duplicate' and row.resolution %}
+            <span class="text-muted"><small>Resolved</small></span>
+        {% else %}
+            <span class="text-muted">—</span>
+        {% endif %}
+    </td>
+</tr>
+{% else %}
+<tr>
+    <td colspan="5" class="text-center text-muted py-4">No rows found in this batch.</td>
+</tr>
+{% endfor %}
