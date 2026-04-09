@@ -21,13 +21,23 @@ def test_login_failure(client, seed_data):
 
 
 def test_login_lockout(client, seed_data):
-    for _ in range(5):
-        client.post('/auth/login', data={
+    # 5 failed attempts should still show remaining attempts
+    for i in range(5):
+        resp = client.post('/auth/login', data={
             'username': 'admin', 'password': 'wrong',
-        })
+        }, follow_redirects=True)
+    # 5th attempt should still not lock (shows "0 remaining" or last warning)
+    # 6th attempt triggers lockout
     resp = client.post('/auth/login', data={
         'username': 'admin', 'password': 'wrong',
     }, follow_redirects=True)
+    assert b'locked' in resp.data.lower()
+
+    # Verify locked user can still get proper error (not a crash)
+    resp = client.post('/auth/login', data={
+        'username': 'admin', 'password': 'Admin123!@#$',
+    }, follow_redirects=True)
+    assert resp.status_code == 200
     assert b'locked' in resp.data.lower()
 
 

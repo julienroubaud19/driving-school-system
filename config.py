@@ -34,4 +34,4 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
     UPLOAD_FOLDER = '/tmp/test_uploads'
-    LOGIN_LOCKOUT_MINUTES = 0
+    LOGIN_LOCKOUT_MINUTES = 15

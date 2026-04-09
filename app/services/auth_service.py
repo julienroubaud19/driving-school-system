@@ -30,14 +30,17 @@ def attempt_login(username, password, ip_address=None):
         return None, 'Account is disabled. Contact an administrator.'
 
     if user.is_locked:
-        remaining = (user.locked_until - datetime.now(timezone.utc)).total_seconds()
+        locked = user.locked_until
+        if locked.tzinfo is None:
+            locked = locked.replace(tzinfo=timezone.utc)
+        remaining = (locked - datetime.now(timezone.utc)).total_seconds()
         mins = max(1, int(remaining // 60))
         return None, f'Account is locked. Try again in {mins} minute(s).'
 
     if not user.check_password(password):
         user.failed_login_attempts += 1
         max_attempts = current_app.config['LOGIN_LOCKOUT_ATTEMPTS']
-        if user.failed_login_attempts >= max_attempts:
+        if user.failed_login_attempts > max_attempts:
             lockout_mins = current_app.config['LOGIN_LOCKOUT_MINUTES']
             user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_mins)
             log_event('login_locked', user_id=user.id, ip_address=ip_address,
