@@ -16,7 +16,7 @@ from app.services.rbac import permission_required
 from app.services.moderation_service import check_content
 from app.services.notification_service import notify
 from app.services.audit_service import log_event
-from app.utils.file_storage import save_file
+from app.utils.file_storage import save_file_with_tracking
 from app.utils.helpers import is_htmx_request, paginate_query
 
 
@@ -81,7 +81,8 @@ def create():
         if form.images.data:
             for img_file in form.images.data:
                 if img_file and img_file.filename:
-                    path = save_file(img_file, 'review_images')
+                    path, _att = save_file_with_tracking(
+                        img_file, 'review_images', 'review', review.id, current_user.id)
                     if path:
                         db.session.add(ReviewImage(review_id=review.id, file_path=path))
 
@@ -181,7 +182,8 @@ def dispute(review_id):
         if form.evidence.data:
             for ev_file in form.evidence.data:
                 if ev_file and ev_file.filename:
-                    path = save_file(ev_file, 'evidence')
+                    path, _att = save_file_with_tracking(
+                        ev_file, 'evidence', 'dispute', d.id, current_user.id)
                     if path:
                         db.session.add(DisputeEvidence(
                             dispute_id=d.id, uploaded_by=current_user.id,

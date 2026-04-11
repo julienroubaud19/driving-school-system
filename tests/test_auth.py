@@ -140,3 +140,23 @@ def test_lockout_exact_threshold(client, seed_data, db):
     }, follow_redirects=True)
     db.session.refresh(user)
     assert user.locked_until is not None
+
+
+def test_open_redirect_blocked(client, seed_data):
+    """Login should reject external redirect URLs in the 'next' parameter."""
+    resp = client.post('/auth/login?next=https://evil.com/steal', data={
+        'username': 'admin', 'password': 'Admin123!@#$',
+    })
+    # Should redirect to dashboard, NOT to evil.com
+    assert resp.status_code in (302, 303)
+    assert 'evil.com' not in resp.headers.get('Location', '')
+    assert 'dashboard' in resp.headers.get('Location', '')
+
+
+def test_open_redirect_relative_allowed(client, seed_data):
+    """Login should allow relative 'next' URLs (safe redirects)."""
+    resp = client.post('/auth/login?next=/students/', data={
+        'username': 'admin', 'password': 'Admin123!@#$',
+    })
+    assert resp.status_code in (302, 303)
+    assert '/students/' in resp.headers.get('Location', '')

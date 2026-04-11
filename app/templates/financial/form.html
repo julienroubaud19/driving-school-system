@@ -89,7 +89,7 @@
                         <div class="mt-2">
                             <small class="text-muted">
                                 Current receipt:
-                                <a href="{{ url_for('static', filename=txn.receipt_path) }}" target="_blank">
+                                <a href="{{ url_for('financial.download_file', filepath=txn.receipt_path) }}" target="_blank">
                                     {{ txn.receipt_path.split('/')[-1] }}
                                 </a>
                             </small>

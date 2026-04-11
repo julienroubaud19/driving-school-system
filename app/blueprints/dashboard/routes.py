@@ -13,6 +13,9 @@ from app.services.report_service import (
     get_approval_turnaround, get_coach_utilization,
     get_retention_rate, get_community_activity,
     get_financial_summary, export_report,
+    get_approval_turnaround_records, get_coach_utilization_records,
+    get_retention_records, get_community_records,
+    get_financial_records,
 )
 from app.services.scheduler_service import create_schedule, run_due_schedules
 from app.utils.helpers import is_htmx_request, parse_date_range
@@ -24,6 +27,8 @@ from app.utils.helpers import is_htmx_request, parse_date_range
 def index():
     locations = Location.query.filter_by(is_active=True).all()
     location_id = request.args.get('location_id', type=int)
+    coach_id = request.args.get('coach_id', type=int)
+    category = request.args.get('category', '').strip()
     date_from, date_to = parse_date_range()
 
     kw = dict(location_id=location_id, date_from=date_from, date_to=date_to)
@@ -34,6 +39,17 @@ def index():
     community = get_community_activity(**kw)
     financial = get_financial_summary(**kw)
 
+    coach_role = Role.query.filter_by(name='Coach').first()
+    coaches = []
+    if coach_role:
+        coaches = User.query.filter_by(role_id=coach_role.id, is_active=True).all()
+
+    from app.models.financial import Transaction
+    categories_q = db.session.query(Transaction.category).filter(
+        Transaction.category.isnot(None), Transaction.category != ''
+    ).distinct().all()
+    categories = sorted(set(c[0] for c in categories_q if c[0]))
+
     if is_htmx_request():
         return render_template('dashboard/partials/_kpi_tiles.html',
                                turnaround=turnaround, utilization=utilization,
@@ -41,7 +57,8 @@ def index():
                                financial=financial)
 
     return render_template('dashboard/index.html',
-                           locations=locations,
+                           locations=locations, coaches=coaches,
+                           categories=categories,
                            turnaround=turnaround, utilization=utilization,
                            retention=retention, community=community,
                            financial=financial)
@@ -52,26 +69,34 @@ def index():
 @permission_required('report.view')
 def drilldown(kpi):
     location_id = request.args.get('location_id', type=int)
+    coach_id = request.args.get('coach_id', type=int)
+    category = request.args.get('category', '').strip()
     date_from, date_to = parse_date_range()
-    kw = dict(location_id=location_id, date_from=date_from, date_to=date_to)
+    page = request.args.get('page', 1, type=int)
 
-    if kpi == 'turnaround':
-        data = get_approval_turnaround(**kw)
-    elif kpi == 'utilization':
-        data = get_coach_utilization(**kw)
-    elif kpi == 'retention':
-        data = get_retention_rate(**kw)
-    elif kpi == 'community':
-        data = get_community_activity(**kw)
-    elif kpi == 'financial':
-        data = get_financial_summary(**kw)
+    kw = dict(location_id=location_id, date_from=date_from, date_to=date_to)
+    page_kw = dict(**kw, page=page, per_page=25)
+
+    record_funcs = {
+        'turnaround': get_approval_turnaround_records,
+        'utilization': get_coach_utilization_records,
+        'retention': get_retention_records,
+        'community': get_community_records,
+        'financial': get_financial_records,
+    }
+
+    func = record_funcs.get(kpi)
+    if func:
+        data, total = func(**page_kw)
     else:
-        data = {}
+        data, total = [], 0
 
     if is_htmx_request():
-        return render_template('dashboard/partials/_drilldown.html', kpi=kpi, data=data)
+        return render_template('dashboard/partials/_drilldown.html',
+                               kpi=kpi, data=data, total=total, page=page)
 
-    return render_template('dashboard/drilldown.html', kpi=kpi, data=data)
+    return render_template('dashboard/drilldown.html',
+                           kpi=kpi, data=data, total=total, page=page)
 
 
 @bp.route('/export/<string:report_name>', methods=['POST'])

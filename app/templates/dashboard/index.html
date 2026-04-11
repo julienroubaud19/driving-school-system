@@ -14,7 +14,7 @@
       hx-trigger="change"
       hx-include="#dashboard-filters">
 
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label for="location-filter" class="form-label">Location</label>
         <select id="location-filter" name="location_id" class="form-select">
             <option value="">All Locations</option>
@@ -27,19 +27,45 @@
         </select>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
+        <label for="coach-filter" class="form-label">Coach</label>
+        <select id="coach-filter" name="coach_id" class="form-select">
+            <option value="">All Coaches</option>
+            {% for coach in coaches %}
+                <option value="{{ coach.id }}"
+                    {% if request.args.get('coach_id', type=int) == coach.id %}selected{% endif %}>
+                    {{ coach.username }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label for="category-filter" class="form-label">Category</label>
+        <select id="category-filter" name="category" class="form-select">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}"
+                    {% if request.args.get('category', '') == cat %}selected{% endif %}>
+                    {{ cat }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-2">
         <label for="date-from" class="form-label">Date From</label>
         <input type="date" id="date-from" name="date_from" class="form-control"
                value="{{ request.args.get('date_from', '') }}">
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label for="date-to" class="form-label">Date To</label>
         <input type="date" id="date-to" name="date_to" class="form-control"
                value="{{ request.args.get('date_to', '') }}">
     </div>
 
-    <div class="col-md-3 d-flex align-items-end">
+    <div class="col-md-2 d-flex align-items-end">
         <button type="submit" class="btn btn-outline-primary w-100">
             Apply Filters
         </button>

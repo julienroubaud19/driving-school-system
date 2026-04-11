@@ -92,3 +92,58 @@ def test_notification_rate_limit(seed_data, db, app):
     # Verify rate log entries
     count = NotificationRateLog.query.filter_by(user_id=user.id).count()
     assert count == 5
+
+
+def test_digest_mode_batches_notifications(seed_data, db, app):
+    """Digest mode should batch multiple notifications into a single entry."""
+    user = seed_data['admin']
+    ntype = NotificationType.query.filter_by(codename='registration_approved').first()
+    sub = NotificationSubscription(
+        user_id=user.id, notification_type_id=ntype.id,
+        is_active=True, digest_mode=True,
+    )
+    db.session.add(sub)
+    db.session.commit()
+
+    # First digest notification
+    n1 = notify(user.id, 'registration_approved', 'First', 'Body 1')
+    assert n1 is not None
+    assert n1.is_digest is True
+    assert n1.digest_count == 1
+
+    # Second notification should be batched into the same digest
+    n2 = notify(user.id, 'registration_approved', 'Second', 'Body 2')
+    assert n2 is not None
+    assert n2.id == n1.id  # same notification record
+    db.session.refresh(n1)
+    assert n1.digest_count == 2
+
+    # Only one notification row should exist
+    total = Notification.query.filter_by(
+        user_id=user.id, notification_type_id=ntype.id
+    ).count()
+    assert total == 1
+
+
+def test_digest_mode_creates_new_after_read(seed_data, db, app):
+    """After reading a digest, a new digest should be created for new notifications."""
+    user = seed_data['admin']
+    ntype = NotificationType.query.filter_by(codename='registration_approved').first()
+    sub = NotificationSubscription(
+        user_id=user.id, notification_type_id=ntype.id,
+        is_active=True, digest_mode=True,
+    )
+    db.session.add(sub)
+    db.session.commit()
+
+    # Create and read first digest
+    n1 = notify(user.id, 'registration_approved', 'Batch1', 'Body1')
+    from app.services.notification_service import mark_read
+    mark_read(n1.id, user.id)
+
+    # New notification should create a new digest
+    n2 = notify(user.id, 'registration_approved', 'Batch2', 'Body2')
+    assert n2 is not None
+    assert n2.id != n1.id
+    assert n2.is_digest is True
+    assert n2.digest_count == 1

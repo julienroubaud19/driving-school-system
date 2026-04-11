@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from urllib.parse import urlparse
+
 from flask import render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -25,6 +27,10 @@ def login():
             login_user(user)
             session['last_active'] = datetime.now(timezone.utc).isoformat()
             next_page = request.args.get('next')
+            if next_page:
+                parsed = urlparse(next_page)
+                if parsed.netloc or parsed.scheme:
+                    next_page = None
             return redirect(next_page or url_for('dashboard.index'))
         flash(error, 'danger')
 

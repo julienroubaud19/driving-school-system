@@ -104,13 +104,64 @@ def execute_import(batch_id, user_id):
         return None, 'Batch not in preview state.'
 
     imported = 0
-    for row in batch.rows.filter(BulkImportRow.status.in_(['pending', 'duplicate'])).all():
-        if row.status == 'duplicate' and row.resolution == 'skip':
-            continue
-        if row.status == 'duplicate' and not row.resolution:
-            continue
+    merged = 0
+    kept = 0
 
+    for row in batch.rows.filter(BulkImportRow.status.in_(['pending', 'duplicate'])).all():
         data = row.get_data()
+
+        if row.status == 'duplicate':
+            if not row.resolution or row.resolution == 'skip':
+                row.status = 'skipped'
+                continue
+
+            if row.resolution == 'merge' and row.matched_transaction_id:
+                existing_txn = db.session.get(Transaction, row.matched_transaction_id)
+                if existing_txn:
+                    from app.services.financial_service import record_version
+                    changes = {}
+                    field_map = {
+                        'description': data.get('description', ''),
+                        'category': data.get('category', ''),
+                    }
+                    for field, new_val in field_map.items():
+                        if new_val and str(getattr(existing_txn, field, '') or '') != str(new_val):
+                            changes[field] = [str(getattr(existing_txn, field, '') or ''), str(new_val)]
+                            setattr(existing_txn, field, new_val)
+
+                    if changes:
+                        record_version(existing_txn, user_id, changes)
+                    existing_txn.compute_fingerprint()
+
+                    from app.services.audit_service import log_event
+                    log_event('import_merge', user_id=user_id,
+                              resource_type='transaction', resource_id=existing_txn.id,
+                              detail={'batch_id': batch.id, 'row': row.row_number,
+                                      'changes': changes})
+
+                    row.status = 'merged'
+                    merged += 1
+                    continue
+
+            if row.resolution == 'keep':
+                txn = Transaction(
+                    type=data.get('type', 'income').lower(),
+                    amount=float(data.get('amount', 0)),
+                    payee=data.get('payee', ''),
+                    description=data.get('description', ''),
+                    category=data.get('category', ''),
+                    payment_method=data.get('payment_method', ''),
+                    location_id=int(data.get('location_id', 1)),
+                    handler_id=user_id,
+                    status='active',
+                )
+                txn.compute_fingerprint()
+                db.session.add(txn)
+                row.status = 'imported'
+                kept += 1
+                imported += 1
+                continue
+
         txn = Transaction(
             type=data.get('type', 'income').lower(),
             amount=float(data.get('amount', 0)),
@@ -129,4 +180,9 @@ def execute_import(batch_id, user_id):
 
     batch.status = 'imported'
     db.session.commit()
-    return batch, f'{imported} transactions imported.'
+    parts = [f'{imported} imported']
+    if merged:
+        parts.append(f'{merged} merged')
+    if kept:
+        parts.append(f'{kept} kept as new')
+    return batch, f'Batch complete: {", ".join(parts)}.'

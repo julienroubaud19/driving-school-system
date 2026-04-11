@@ -1,6 +1,7 @@
 import json
+import os
 
-from flask import render_template, redirect, url_for, flash, request, send_from_directory
+from flask import render_template, redirect, url_for, flash, request, send_from_directory, current_app
 from flask_login import login_required, current_user
 
 from app.blueprints.financial import bp
@@ -15,7 +16,7 @@ from app.services.financial_service import (
 )
 from app.services.import_service import parse_csv, parse_excel, preview_import, execute_import
 from app.services.audit_service import log_event
-from app.utils.file_storage import save_file
+from app.utils.file_storage import save_file_with_tracking
 from app.utils.helpers import is_htmx_request, paginate_query
 
 
@@ -70,8 +71,10 @@ def create():
 
     if form.validate_on_submit():
         receipt_path = None
+        receipt_att = None
         if form.receipt.data:
-            receipt_path = save_file(form.receipt.data, 'receipts')
+            receipt_path, receipt_att = save_file_with_tracking(
+                form.receipt.data, 'receipts', 'transaction', None, current_user.id)
 
         txn = Transaction(
             type=form.type.data,
@@ -94,6 +97,11 @@ def create():
             txn.status = 'active'
 
         db.session.add(txn)
+        db.session.flush()
+
+        if receipt_att:
+            receipt_att.resource_id = txn.id
+
         db.session.commit()
 
         log_event('transaction_created', user_id=current_user.id,
@@ -120,7 +128,28 @@ def detail(transaction_id):
 
     versions = TransactionVersion.query.filter_by(transaction_id=txn.id)\
         .order_by(TransactionVersion.version_number).all()
-    return render_template('financial/detail.html', txn=txn, versions=versions)
+
+    from app.models.attachment import Attachment
+    attachments = Attachment.query.filter_by(
+        resource_type='transaction', resource_id=txn.id
+    ).order_by(Attachment.version).all()
+
+    return render_template('financial/detail.html', txn=txn, versions=versions,
+                           attachments=attachments)
+
+
+@bp.route('/uploads/<path:filepath>')
+@login_required
+@permission_required('financial.view')
+def download_file(filepath):
+    upload_folder = current_app.config['UPLOAD_FOLDER']
+    full_path = os.path.join(upload_folder, filepath)
+    if not os.path.realpath(full_path).startswith(os.path.realpath(upload_folder)):
+        from flask import abort
+        abort(403)
+    directory = os.path.dirname(full_path)
+    filename = os.path.basename(full_path)
+    return send_from_directory(directory, filename)
 
 
 @bp.route('/<int:transaction_id>/edit', methods=['GET', 'POST'])
@@ -154,7 +183,10 @@ def edit(transaction_id):
 
         form.populate_obj(txn)
         if form.receipt.data:
-            txn.receipt_path = save_file(form.receipt.data, 'receipts')
+            receipt_path, _att = save_file_with_tracking(
+                form.receipt.data, 'receipts', 'transaction', txn.id, current_user.id)
+            if receipt_path:
+                txn.receipt_path = receipt_path
         txn.compute_fingerprint()
 
         if changes:
@@ -240,14 +272,36 @@ def bulk_import():
         file = form.file.data
         filename = file.filename.lower()
 
+        allowed_extensions = {'.csv', '.xlsx', '.xls'}
+        allowed_mimetypes = {
+            'text/csv', 'application/csv',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+        }
+
+        ext = os.path.splitext(filename)[1]
+        if ext not in allowed_extensions:
+            flash('Unsupported file format. Please upload a CSV (.csv) or Excel (.xlsx, .xls) file.', 'danger')
+            return render_template('financial/import.html', form=form)
+
+        if file.content_type and file.content_type not in allowed_mimetypes:
+            if ext not in ('.csv',) or file.content_type not in ('text/plain', 'application/octet-stream'):
+                flash(f'Invalid file type detected ({file.content_type}). Expected CSV or Excel.', 'danger')
+                return render_template('financial/import.html', form=form)
+
         try:
-            if filename.endswith('.csv'):
-                content = file.read().decode('utf-8')
+            if ext == '.csv':
+                try:
+                    content = file.read().decode('utf-8')
+                except UnicodeDecodeError:
+                    flash('CSV file contains invalid characters. Please ensure the file is UTF-8 encoded.', 'danger')
+                    return render_template('financial/import.html', form=form)
                 rows, columns = parse_csv(content, filename)
-            elif filename.endswith(('.xlsx', '.xls')):
-                rows, columns = parse_excel(file)
             else:
-                flash('Unsupported file format. Use CSV or Excel.', 'danger')
+                rows, columns = parse_excel(file)
+
+            if not rows:
+                flash('The uploaded file contains no data rows.', 'warning')
                 return render_template('financial/import.html', form=form)
 
             batch = preview_import(rows, columns, current_user.id, filename)
@@ -255,8 +309,12 @@ def bulk_import():
                       resource_type='import_batch', resource_id=batch.id)
             return redirect(url_for('financial.import_preview', batch_id=batch.id))
 
-        except Exception as e:
-            flash(f'Error parsing file: {str(e)}', 'danger')
+        except UnicodeDecodeError:
+            flash('File encoding error. Please ensure the file is UTF-8 encoded.', 'danger')
+        except ValueError as e:
+            flash(f'Data validation error: {e}', 'danger')
+        except Exception:
+            flash('Failed to parse the uploaded file. Please check the format and try again.', 'danger')
 
     return render_template('financial/import.html', form=form)
 
@@ -270,6 +328,10 @@ def import_preview(batch_id):
         flash('Batch not found.', 'danger')
         return redirect(url_for('financial.bulk_import'))
 
+    if batch.uploaded_by != current_user.id and current_user.role.name not in ('Administrator', 'Auditor'):
+        from flask import abort
+        abort(403)
+
     rows = batch.rows.order_by(BulkImportRow.row_number).all()
     return render_template('financial/import_preview.html', batch=batch, rows=rows)
 
@@ -278,13 +340,24 @@ def import_preview(batch_id):
 @login_required
 @permission_required('financial.import')
 def resolve_duplicate(batch_id, row_id):
+    batch = db.session.get(BulkImportBatch, batch_id)
+    if not batch:
+        flash('Batch not found.', 'danger')
+        return redirect(url_for('financial.bulk_import'))
+
+    if batch.uploaded_by != current_user.id and current_user.role.name not in ('Administrator', 'Auditor'):
+        from flask import abort
+        abort(403)
+
     row = db.session.get(BulkImportRow, row_id)
     if row and row.batch_id == batch_id:
-        row.resolution = request.form.get('resolution', 'skip')
+        resolution = request.form.get('resolution', 'skip')
+        if resolution not in ('merge', 'keep', 'skip'):
+            resolution = 'skip'
+        row.resolution = resolution
         db.session.commit()
 
     if is_htmx_request():
-        batch = db.session.get(BulkImportBatch, batch_id)
         rows = batch.rows.order_by(BulkImportRow.row_number).all()
         return render_template('financial/partials/_import_rows.html', batch=batch, rows=rows)
 
@@ -295,6 +368,15 @@ def resolve_duplicate(batch_id, row_id):
 @login_required
 @permission_required('financial.import')
 def execute_batch_import(batch_id):
+    batch_check = db.session.get(BulkImportBatch, batch_id)
+    if not batch_check:
+        flash('Batch not found.', 'danger')
+        return redirect(url_for('financial.bulk_import'))
+
+    if batch_check.uploaded_by != current_user.id and current_user.role.name not in ('Administrator', 'Auditor'):
+        from flask import abort
+        abort(403)
+
     batch, msg = execute_import(batch_id, current_user.id)
     if batch:
         log_event('bulk_import_executed', user_id=current_user.id,

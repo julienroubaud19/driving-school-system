@@ -39,6 +39,8 @@ class Notification(db.Model):
     body = db.Column(db.Text)
     link = db.Column(db.String(500))
     is_read = db.Column(db.Boolean, default=False)
+    is_digest = db.Column(db.Boolean, default=False)
+    digest_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     read_at = db.Column(db.DateTime, nullable=True)
 

@@ -68,7 +68,7 @@ python seed.py
 | Role          | Username    | Password        |
 |--------------|-------------|-----------------|
 | Administrator | `admin`     | `Admin123!@#$`  |
-| Front Desk   | `frontdesk1`| `FDesk123!@#$`  |
+| FrontDesk    | `frontdesk1`| `FDesk123!@#$`  |
 | Coach        | `coach1`    | `Coach123!@#$`  |
 | Auditor      | `auditor1`  | `Audit123!@#$`  |
 
@@ -113,7 +113,7 @@ pytest --cov=app --cov-report=term-missing
 The system uses role-based access control with four predefined roles:
 
 - **Administrator** -- Full access to all features including user management, audit logs, configuration, and all operational modules.
-- **Front Desk** -- Student enrollment, financial transactions (create/edit/import), basic review access, and report viewing.
+- **FrontDesk** -- Student enrollment, financial transactions (create/edit/import), basic review access, and report viewing.
 - **Coach** -- View assigned students, add student notes, create/dispute reviews, and view reports. Coaches can only access students assigned to them.
 - **Auditor** -- Read-only access to students, financial records, reviews, full report access including exports, and audit log viewing.
 

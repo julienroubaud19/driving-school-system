@@ -192,3 +192,54 @@ def test_non_admin_cannot_access_admin_audit(client, seed_data):
     login(client, 'frontdesk', 'FDesk123!@#$')
     resp = client.get('/admin/audit')
     assert resp.status_code == 403
+
+
+def test_drilldown_financial_returns_records(client, seed_data, db):
+    """Financial drill-down should return individual transaction records."""
+    login(client, 'admin', 'Admin123!@#$')
+    txn = Transaction(type='income', amount=999, payee='DrillTest',
+                      payment_method='cash', location_id=seed_data['location'].id,
+                      handler_id=seed_data['admin'].id, status='active')
+    txn.compute_fingerprint()
+    db.session.add(txn)
+    db.session.commit()
+
+    resp = client.get('/dashboard/drilldown/financial')
+    assert resp.status_code == 200
+    assert b'DrillTest' in resp.data
+
+
+def test_drilldown_retention_returns_student_records(client, seed_data, db):
+    """Retention drill-down should return individual student records."""
+    login(client, 'admin', 'Admin123!@#$')
+    s = Student(first_name='Drill', last_name='Student', location_id=seed_data['location'].id,
+                handler_id=seed_data['admin'].id, status='active')
+    db.session.add(s)
+    db.session.commit()
+
+    resp = client.get('/dashboard/drilldown/retention')
+    assert resp.status_code == 200
+    assert b'Drill Student' in resp.data
+
+
+def test_dashboard_has_coach_filter(client, seed_data):
+    """Dashboard should include coach filter options."""
+    login(client, 'admin', 'Admin123!@#$')
+    resp = client.get('/dashboard/')
+    assert resp.status_code == 200
+    assert b'coach-filter' in resp.data or b'All Coaches' in resp.data
+
+
+def test_dashboard_has_category_filter(client, seed_data, db):
+    """Dashboard should include category filter when categories exist."""
+    login(client, 'admin', 'Admin123!@#$')
+    txn = Transaction(type='income', amount=100, payee='CatTest', category='Tuition',
+                      payment_method='cash', location_id=seed_data['location'].id,
+                      handler_id=seed_data['admin'].id, status='active')
+    txn.compute_fingerprint()
+    db.session.add(txn)
+    db.session.commit()
+
+    resp = client.get('/dashboard/')
+    assert resp.status_code == 200
+    assert b'category-filter' in resp.data or b'All Categories' in resp.data

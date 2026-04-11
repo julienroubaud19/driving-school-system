@@ -130,14 +130,61 @@
     <div class="card-body">
         {% set receipt_ext = txn.receipt_path.split('.')[-1]|lower %}
         {% if receipt_ext in ['jpg', 'jpeg', 'png'] %}
-            <img src="{{ url_for('static', filename=txn.receipt_path) }}"
+            <img src="{{ url_for('financial.download_file', filepath=txn.receipt_path) }}"
                  alt="Receipt" class="img-fluid mb-3" style="max-height: 400px;">
             <br>
         {% endif %}
-        <a href="{{ url_for('static', filename=txn.receipt_path) }}"
+        <a href="{{ url_for('financial.download_file', filepath=txn.receipt_path) }}"
            class="btn btn-outline-primary" target="_blank" download>
             Download Receipt ({{ txn.receipt_path.split('/')[-1] }})
         </a>
+    </div>
+</div>
+{% endif %}
+
+{# ── Attachment History ───────────────────────────────────────── #}
+{% if attachments %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">Attachment History</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead>
+                    <tr>
+                        <th>Version</th>
+                        <th>Filename</th>
+                        <th>Size</th>
+                        <th>Uploaded By</th>
+                        <th>Date</th>
+                        <th>Duplicate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for att in attachments %}
+                    <tr>
+                        <td><span class="badge bg-secondary">v{{ att.version }}</span></td>
+                        <td>
+                            <a href="{{ url_for('financial.download_file', filepath=att.file_path) }}">
+                                {{ att.filename }}
+                            </a>
+                        </td>
+                        <td>{{ (att.file_size / 1024) | round(1) }} KB</td>
+                        <td>{{ att.uploader.username if att.uploader else '—' }}</td>
+                        <td>{{ att.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if att.is_duplicate %}
+                                <span class="badge bg-warning text-dark">Duplicate</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% endif %}

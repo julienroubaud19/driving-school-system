@@ -20,7 +20,37 @@ def notify(user_id, type_codename, title, body, link=None):
         return None
 
     if sub.digest_mode:
-        pass  # digest mode: notification is still created but could be batched in UI
+        existing_digest = Notification.query.filter_by(
+            user_id=user_id,
+            notification_type_id=ntype.id,
+            is_read=False,
+            is_digest=True,
+        ).first()
+
+        if existing_digest:
+            count = existing_digest.digest_count + 1
+            existing_digest.digest_count = count
+            existing_digest.title = f'{ntype.label} ({count} updates)'
+            existing_digest.body = f'{body}\n---\n{existing_digest.body}'
+            existing_digest.link = link or existing_digest.link
+            existing_digest.created_at = datetime.now(timezone.utc)
+            db.session.commit()
+            return existing_digest
+
+        notif = Notification(
+            user_id=user_id,
+            notification_type_id=ntype.id,
+            title=f'{ntype.label} (1 update)',
+            body=body,
+            link=link,
+            is_digest=True,
+            digest_count=1,
+        )
+        db.session.add(notif)
+        rate_log = NotificationRateLog(user_id=user_id)
+        db.session.add(rate_log)
+        db.session.commit()
+        return notif
 
     rate_limit = current_app.config['NOTIFICATION_RATE_LIMIT']
     one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
