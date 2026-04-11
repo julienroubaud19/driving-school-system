@@ -12,7 +12,8 @@ from app.models.review import (
     RatingDimension, Review, RatingScore, ReviewImage,
     ReviewLike, ReviewReport, Dispute, DisputeEvidence,
 )
-from app.models.audit import AuditEvent, AnomalyFlag, AppConfig
+from app.models.audit import AuditEvent, AnomalyFlag, AppConfig, ReportSchedule, ReportExecution
+from app.models.attachment import Attachment
 from app.models.moderation import (
     ModerationQueue, ModerationLog, SensitiveWord, UserBlacklist,
 )
@@ -26,5 +27,6 @@ __all__ = [
     'RatingDimension', 'Review', 'RatingScore', 'ReviewImage',
     'ReviewLike', 'ReviewReport', 'Dispute', 'DisputeEvidence',
     'ModerationQueue', 'ModerationLog', 'SensitiveWord', 'UserBlacklist',
-    'AuditEvent', 'AnomalyFlag', 'AppConfig',
+    'AuditEvent', 'AnomalyFlag', 'AppConfig', 'ReportSchedule', 'ReportExecution',
+    'Attachment',
 ]

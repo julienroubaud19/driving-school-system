@@ -40,7 +40,7 @@ def attempt_login(username, password, ip_address=None):
     if not user.check_password(password):
         user.failed_login_attempts += 1
         max_attempts = current_app.config['LOGIN_LOCKOUT_ATTEMPTS']
-        if user.failed_login_attempts > max_attempts:
+        if user.failed_login_attempts >= max_attempts:
             lockout_mins = current_app.config['LOGIN_LOCKOUT_MINUTES']
             user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=lockout_mins)
             log_event('login_locked', user_id=user.id, ip_address=ip_address,

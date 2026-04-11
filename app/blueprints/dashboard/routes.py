@@ -4,19 +4,23 @@ from flask import render_template, request, send_from_directory, jsonify, flash,
 from flask_login import login_required, current_user
 
 from app.blueprints.dashboard import bp
+from app.extensions import db
 from app.models.location import Location
 from app.models.user import User, Role
+from app.models.audit import ReportSchedule
 from app.services.rbac import permission_required
 from app.services.report_service import (
     get_approval_turnaround, get_coach_utilization,
     get_retention_rate, get_community_activity,
     get_financial_summary, export_report,
 )
+from app.services.scheduler_service import create_schedule, run_due_schedules
 from app.utils.helpers import is_htmx_request, parse_date_range
 
 
 @bp.route('/')
 @login_required
+@permission_required('report.view')
 def index():
     locations = Location.query.filter_by(is_active=True).all()
     location_id = request.args.get('location_id', type=int)
@@ -45,6 +49,7 @@ def index():
 
 @bp.route('/drilldown/<string:kpi>')
 @login_required
+@permission_required('report.view')
 def drilldown(kpi):
     location_id = request.args.get('location_id', type=int)
     date_from, date_to = parse_date_range()
@@ -104,3 +109,60 @@ def export(report_name):
         os.path.join(current_app.config['UPLOAD_FOLDER'], 'exports'),
         filename, as_attachment=True,
     )
+
+
+@bp.route('/schedules')
+@login_required
+@permission_required('report.export')
+def schedules():
+    all_schedules = ReportSchedule.query.order_by(ReportSchedule.created_at.desc()).all()
+    locations = Location.query.filter_by(is_active=True).all()
+    return render_template('dashboard/schedules.html',
+                           schedules=all_schedules, locations=locations)
+
+
+@bp.route('/schedules/new', methods=['POST'])
+@login_required
+@permission_required('report.export')
+def create_report_schedule():
+    report_name = request.form.get('report_name', '').strip()
+    frequency = request.form.get('frequency', '').strip()
+    location_id = request.form.get('location_id', type=int)
+    fmt = request.form.get('format', 'csv')
+
+    valid_reports = ['turnaround', 'utilization', 'retention', 'community', 'financial']
+    valid_frequencies = ['daily', 'weekly', 'monthly']
+
+    if report_name not in valid_reports:
+        flash('Invalid report name.', 'danger')
+        return redirect(url_for('dashboard.schedules'))
+
+    if frequency not in valid_frequencies:
+        flash('Invalid frequency. Choose daily, weekly, or monthly.', 'danger')
+        return redirect(url_for('dashboard.schedules'))
+
+    schedule = create_schedule(report_name, frequency, location_id, fmt, current_user.id)
+    flash(f'Report schedule created: {report_name} ({frequency}).', 'success')
+    return redirect(url_for('dashboard.schedules'))
+
+
+@bp.route('/schedules/<int:schedule_id>/toggle', methods=['POST'])
+@login_required
+@permission_required('report.export')
+def toggle_schedule(schedule_id):
+    schedule = db.session.get(ReportSchedule, schedule_id)
+    if schedule:
+        schedule.is_active = not schedule.is_active
+        db.session.commit()
+        status = 'activated' if schedule.is_active else 'deactivated'
+        flash(f'Schedule {status}.', 'success')
+    return redirect(url_for('dashboard.schedules'))
+
+
+@bp.route('/schedules/run', methods=['POST'])
+@login_required
+@permission_required('report.export')
+def run_schedules():
+    results = run_due_schedules()
+    flash(f'{len(results)} scheduled report(s) executed.', 'success')
+    return redirect(url_for('dashboard.schedules'))

@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from tests.conftest import login
 
 
@@ -21,19 +23,15 @@ def test_login_failure(client, seed_data):
 
 
 def test_login_lockout(client, seed_data):
-    # 5 failed attempts should still show remaining attempts
+    # 5 failed attempts should trigger lockout (lock on 5th per requirement)
     for i in range(5):
         resp = client.post('/auth/login', data={
             'username': 'admin', 'password': 'wrong',
         }, follow_redirects=True)
-    # 5th attempt should still not lock (shows "0 remaining" or last warning)
-    # 6th attempt triggers lockout
-    resp = client.post('/auth/login', data={
-        'username': 'admin', 'password': 'wrong',
-    }, follow_redirects=True)
+    # 5th attempt triggers lockout
     assert b'locked' in resp.data.lower()
 
-    # Verify locked user can still get proper error (not a crash)
+    # Verify locked user gets locked message even with correct password
     resp = client.post('/auth/login', data={
         'username': 'admin', 'password': 'Admin123!@#$',
     }, follow_redirects=True)
@@ -107,3 +105,38 @@ def test_force_password_reset(client, seed_data, db):
     login(client, 'admin', 'Admin123!@#$')
     resp = client.get('/students/', follow_redirects=True)
     assert b'change your password' in resp.data.lower() or b'change_password' in resp.data.lower() or resp.status_code == 200
+
+
+def test_session_timeout(client, seed_data):
+    """Session should expire after 30 minutes of inactivity."""
+    login(client, 'admin', 'Admin123!@#$')
+
+    # Simulate setting last_active to 31 minutes ago
+    with client.session_transaction() as sess:
+        past = datetime.now(timezone.utc) - timedelta(minutes=31)
+        sess['last_active'] = past.isoformat()
+
+    # Next request should trigger logout
+    resp = client.get('/students/', follow_redirects=True)
+    assert b'expired' in resp.data.lower() or b'Sign In' in resp.data
+
+
+def test_lockout_exact_threshold(client, seed_data, db):
+    """Account should lock on exactly the 5th failed attempt."""
+    from app.models.user import User
+    user = User.query.filter_by(username='admin').first()
+
+    # 4 failed attempts - should not be locked
+    for i in range(4):
+        client.post('/auth/login', data={
+            'username': 'admin', 'password': 'wrong',
+        }, follow_redirects=True)
+    db.session.refresh(user)
+    assert user.locked_until is None
+
+    # 5th attempt should lock
+    resp = client.post('/auth/login', data={
+        'username': 'admin', 'password': 'wrong',
+    }, follow_redirects=True)
+    db.session.refresh(user)
+    assert user.locked_until is not None

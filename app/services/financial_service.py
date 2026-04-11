@@ -59,6 +59,14 @@ def void_transaction(transaction_id, reason, approved_by_id, user_id):
     if not txn or txn.status not in ('active', 'draft'):
         return None, 'Transaction cannot be voided.'
 
+    if approved_by_id == user_id:
+        return None, 'Supervisor approval required: you cannot approve your own void request.'
+
+    from app.models.user import User
+    approver = db.session.get(User, approved_by_id)
+    if not approver or not approver.has_permission('financial.void'):
+        return None, 'Approver does not have the required supervisor permission.'
+
     txn.status = 'voided'
     txn.void_reason = reason
     txn.void_approved_by = approved_by_id
@@ -76,6 +84,14 @@ def create_reversal(original_id, user_id, approved_by_id):
     if not original:
         return None, 'Original transaction not found.'
 
+    if approved_by_id == user_id:
+        return None, 'Supervisor approval required: you cannot approve your own reversal.'
+
+    from app.models.user import User
+    approver = db.session.get(User, approved_by_id)
+    if not approver or not approver.has_permission('financial.void'):
+        return None, 'Approver does not have the required supervisor permission.'
+
     reversal = Transaction(
         type=original.type,
         amount=-original.amount,
@@ -92,8 +108,9 @@ def create_reversal(original_id, user_id, approved_by_id):
     reversal.compute_fingerprint()
     db.session.add(reversal)
 
+    old_status = original.status
     original.status = 'reversed'
-    record_version(original, user_id, {'status': [original.status, 'reversed']})
+    record_version(original, user_id, {'status': [old_status, 'reversed']})
 
     log_event('transaction_reversed', user_id=user_id,
               resource_type='transaction', resource_id=original.id)

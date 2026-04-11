@@ -1,5 +1,7 @@
 from tests.conftest import login
-from app.models.notification import Notification, NotificationSubscription, NotificationType
+from app.models.notification import (
+    Notification, NotificationSubscription, NotificationType, NotificationRateLog,
+)
 from app.services.notification_service import notify
 
 
@@ -66,3 +68,27 @@ def test_subscriptions_page(client, seed_data):
     login(client, 'admin', 'Admin123!@#$')
     resp = client.get('/notifications/subscriptions')
     assert resp.status_code == 200
+
+
+def test_notification_rate_limit(seed_data, db, app):
+    """Notifications should be rate-limited to 5 per user per hour."""
+    user = seed_data['admin']
+    ntype = NotificationType.query.filter_by(codename='registration_approved').first()
+    sub = NotificationSubscription(
+        user_id=user.id, notification_type_id=ntype.id, is_active=True
+    )
+    db.session.add(sub)
+    db.session.commit()
+
+    # Send 5 notifications (all should succeed)
+    for i in range(5):
+        result = notify(user.id, 'registration_approved', f'Title {i}', f'Body {i}')
+        assert result is not None
+
+    # 6th notification should be rate limited
+    result = notify(user.id, 'registration_approved', 'Over limit', 'Body')
+    assert result is None
+
+    # Verify rate log entries
+    count = NotificationRateLog.query.filter_by(user_id=user.id).count()
+    assert count == 5

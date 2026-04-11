@@ -34,6 +34,37 @@ class AnomalyFlag(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class ReportSchedule(db.Model):
+    __tablename__ = 'report_schedules'
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_name = db.Column(db.String(100), nullable=False)
+    frequency = db.Column(db.String(20), nullable=False)  # daily/weekly/monthly
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)
+    format = db.Column(db.String(10), default='csv')  # csv/json
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    last_run_at = db.Column(db.DateTime, nullable=True)
+    next_run_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    creator = db.relationship('User')
+    location = db.relationship('Location')
+    executions = db.relationship('ReportExecution', backref='schedule',
+                                 order_by='ReportExecution.executed_at.desc()')
+
+
+class ReportExecution(db.Model):
+    __tablename__ = 'report_executions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    schedule_id = db.Column(db.Integer, db.ForeignKey('report_schedules.id'), nullable=False)
+    file_path = db.Column(db.String(500))
+    status = db.Column(db.String(20), default='success')  # success/failed
+    error_message = db.Column(db.Text, nullable=True)
+    executed_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 class AppConfig(db.Model):
     __tablename__ = 'app_config'
 

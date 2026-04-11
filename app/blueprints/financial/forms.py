@@ -24,6 +24,7 @@ class TransactionForm(FlaskForm):
 
 class VoidForm(FlaskForm):
     reason = TextAreaField('Reason for Void', validators=[DataRequired()])
+    approved_by = SelectField('Supervisor Approval', coerce=int, validators=[DataRequired()])
     submit = SubmitField('Confirm Void')
 
 

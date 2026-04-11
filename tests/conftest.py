@@ -78,9 +78,11 @@ def seed_data(db):
         'report.view', 'report.export', 'admin.audit',
     ]]
 
-    # Location
+    # Locations
     loc = Location(name='Main Branch', address='100 Main St', phone='555-0100')
     db.session.add(loc)
+    loc2 = Location(name='Downtown Branch', address='250 Center Ave', phone='555-0200')
+    db.session.add(loc2)
     db.session.flush()
 
     # Users
@@ -99,6 +101,17 @@ def seed_data(db):
     coach.set_password('Coach123!@#$')
     db.session.add(coach)
 
+    auditor = User(username='auditor', email='auditor@test.local',
+                   role_id=auditor_role.id, location_id=loc.id, is_active=True)
+    auditor.set_password('Audit123!@#$')
+    db.session.add(auditor)
+
+    # Second location frontdesk user
+    frontdesk2 = User(username='frontdesk2', email='fd2@test.local',
+                      role_id=frontdesk_role.id, location_id=loc2.id, is_active=True)
+    frontdesk2.set_password('FDesk123!@#$')
+    db.session.add(frontdesk2)
+
     # Notification types
     for code, label in [('registration_approved', 'Registration Approved'),
                         ('dispute_assigned', 'Dispute Assigned'),
@@ -113,7 +126,8 @@ def seed_data(db):
     db.session.commit()
     return {
         'admin': admin, 'frontdesk': frontdesk, 'coach': coach,
-        'location': loc, 'admin_role': admin_role,
+        'auditor': auditor, 'frontdesk2': frontdesk2,
+        'location': loc, 'location2': loc2, 'admin_role': admin_role,
     }
 
 

@@ -130,6 +130,11 @@ def edit(student_id):
 @permission_required('student.add_note')
 def add_note(student_id):
     student = db.session.get(Student, student_id) or abort_404()
+
+    if current_user.role.name == 'Coach' and student.assigned_coach_id != current_user.id:
+        from flask import abort
+        abort(403)
+
     form = StudentNoteForm()
 
     if form.validate_on_submit():

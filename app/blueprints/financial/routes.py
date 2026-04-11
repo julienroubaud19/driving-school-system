@@ -25,6 +25,9 @@ from app.utils.helpers import is_htmx_request, paginate_query
 def list_transactions():
     query = Transaction.query
 
+    if current_user.role.name not in ('Administrator', 'Auditor') and current_user.location_id:
+        query = query.filter_by(location_id=current_user.location_id)
+
     location_id = request.args.get('location_id', type=int)
     if location_id:
         query = query.filter_by(location_id=location_id)
@@ -110,6 +113,11 @@ def detail(transaction_id):
         flash('Transaction not found.', 'danger')
         return redirect(url_for('financial.list_transactions'))
 
+    if current_user.role.name not in ('Administrator', 'Auditor') and current_user.location_id:
+        if txn.location_id != current_user.location_id:
+            from flask import abort
+            abort(403)
+
     versions = TransactionVersion.query.filter_by(transaction_id=txn.id)\
         .order_by(TransactionVersion.version_number).all()
     return render_template('financial/detail.html', txn=txn, versions=versions)
@@ -123,6 +131,11 @@ def edit(transaction_id):
     if not txn:
         flash('Transaction not found.', 'danger')
         return redirect(url_for('financial.list_transactions'))
+
+    if current_user.role.name not in ('Administrator', 'Auditor') and current_user.location_id:
+        if txn.location_id != current_user.location_id:
+            from flask import abort
+            abort(403)
 
     if not txn.is_editable:
         flash('This transaction cannot be edited.', 'warning')
@@ -162,13 +175,14 @@ def edit(transaction_id):
 @permission_required('financial.void')
 def void(transaction_id):
     form = VoidForm()
+    _populate_supervisor_choices(form)
     txn = db.session.get(Transaction, transaction_id)
     if not txn:
         flash('Transaction not found.', 'danger')
         return redirect(url_for('financial.list_transactions'))
 
     if form.validate_on_submit():
-        result, error = void_transaction(txn.id, form.reason.data, current_user.id, current_user.id)
+        result, error = void_transaction(txn.id, form.reason.data, form.approved_by.data, current_user.id)
         if error:
             flash(error, 'danger')
         else:
@@ -182,7 +196,11 @@ def void(transaction_id):
 @login_required
 @permission_required('financial.void')
 def reverse(transaction_id):
-    reversal, error = create_reversal(transaction_id, current_user.id, current_user.id)
+    approved_by_id = request.form.get('approved_by', type=int)
+    if not approved_by_id:
+        flash('Supervisor approval is required for reversals.', 'danger')
+        return redirect(url_for('financial.detail', transaction_id=transaction_id))
+    reversal, error = create_reversal(transaction_id, current_user.id, approved_by_id)
     if error:
         flash(error, 'danger')
     else:
@@ -290,3 +308,22 @@ def execute_batch_import(batch_id):
 def _populate_location_choices(form):
     locations = Location.query.filter_by(is_active=True).all()
     form.location_id.choices = [(l.id, l.name) for l in locations]
+
+
+def _populate_supervisor_choices(form):
+    from app.models.user import User, Role, Permission, role_permissions
+    void_perm = Permission.query.filter_by(codename='financial.void').first()
+    if void_perm:
+        supervisor_role_ids = db.session.query(role_permissions.c.role_id).filter(
+            role_permissions.c.permission_id == void_perm.id
+        ).subquery()
+        supervisors = User.query.filter(
+            User.is_active == True,
+            User.id != current_user.id,
+            User.role_id.in_(db.session.query(supervisor_role_ids)),
+        ).order_by(User.username).all()
+    else:
+        supervisors = []
+    form.approved_by.choices = [(0, '-- Select Supervisor --')] + [
+        (u.id, u.username) for u in supervisors
+    ]

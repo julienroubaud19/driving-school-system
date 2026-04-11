@@ -11,6 +11,14 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    if (not app.config.get('TESTING')
+            and not app.debug
+            and app.config.get('SECRET_KEY') == 'dev-secret-key-change-in-production'):
+        raise RuntimeError(
+            'SECRET_KEY is set to the insecure default. '
+            'Set the SECRET_KEY environment variable to a strong random value.'
+        )
+
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     for sub in ('receipts', 'review_images', 'evidence', 'exports'):
         os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], sub), exist_ok=True)

@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Report Schedules - Driving School Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Report Schedules</h1>
+    <form method="post" action="{{ url_for('dashboard.run_schedules') }}" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-outline-primary">Run Due Schedules</button>
+    </form>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">Create New Schedule</div>
+    <div class="card-body">
+        <form method="post" action="{{ url_for('dashboard.create_report_schedule') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Report</label>
+                    <select name="report_name" class="form-select" required>
+                        <option value="turnaround">Approval Turnaround</option>
+                        <option value="utilization">Coach Utilization</option>
+                        <option value="retention">Student Retention</option>
+                        <option value="community">Community Activity</option>
+                        <option value="financial">Financial Summary</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Frequency</label>
+                    <select name="frequency" class="form-select" required>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Location</label>
+                    <select name="location_id" class="form-select">
+                        <option value="">All Locations</option>
+                        {% for loc in locations %}
+                            <option value="{{ loc.id }}">{{ loc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Format</label>
+                    <select name="format" class="form-select">
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Create</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">Existing Schedules</div>
+    <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Report</th>
+                    <th>Frequency</th>
+                    <th>Location</th>
+                    <th>Format</th>
+                    <th>Status</th>
+                    <th>Last Run</th>
+                    <th>Next Run</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in schedules %}
+                <tr>
+                    <td>{{ s.report_name }}</td>
+                    <td>{{ s.frequency }}</td>
+                    <td>{{ s.location.name if s.location else 'All' }}</td>
+                    <td>{{ s.format }}</td>
+                    <td>
+                        {% if s.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ s.last_run_at.strftime('%Y-%m-%d %H:%M') if s.last_run_at else 'Never' }}</td>
+                    <td>{{ s.next_run_at.strftime('%Y-%m-%d %H:%M') if s.next_run_at else '-' }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('dashboard.toggle_schedule', schedule_id=s.id) }}" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                {{ 'Deactivate' if s.is_active else 'Activate' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted">No schedules configured.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
