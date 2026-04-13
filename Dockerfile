@@ -7,8 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python seed.py
-
 EXPOSE 5000
 
 CMD ["python", "run.py"]

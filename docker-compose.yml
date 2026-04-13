@@ -6,8 +6,9 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - SECRET_KEY=docker-compose-secret-key-replace-in-production
-      - FLASK_DEBUG=1
+      - SECRET_KEY=docker-compose-generated-secret-key-a1b2c3d4e5
+      - FLASK_ENV=development
+    command: sh -c "python seed.py && python run.py"
     volumes:
       - uploads:/app/uploads
       - db_data:/app/instance
