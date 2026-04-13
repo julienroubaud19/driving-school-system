@@ -411,3 +411,24 @@ def convert_claude_jsonl_to_messages(
         }
 
     return result
+
+
+def convert_claude_jsonl(file_path):
+    from pathlib import Path
+    p = Path(file_path)
+    with open(p, 'r', encoding='utf-8') as f:
+        events = [json.loads(line) for line in f if line.strip()]
+    options = ClaudeConverterOptions(messages_only=False)
+    return convert_claude_jsonl_to_messages(events, options=options)
+
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description='Convert Claude JSONL session to OpenAI format')
+    parser.add_argument('-i', '--input', required=True, help='Input .jsonl file')
+    parser.add_argument('-o', '--output', required=True, help='Output .json file')
+    args = parser.parse_args()
+    result = convert_claude_jsonl(args.input)
+    with open(args.output, 'w', encoding='utf-8') as f:
+        json.dump(result, f, ensure_ascii=False, indent=2)
+    print(f"Done. {len(result['messages'])} messages written to {args.output}")
