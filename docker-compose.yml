@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - SECRET_KEY=docker-compose-dev-key-change-in-production
+      - FLASK_ENV=development
+    volumes:
+      - uploads:/app/uploads
+      - db_data:/app/instance
+
+volumes:
+  uploads:
+  db_data:
