@@ -6,8 +6,8 @@ services:
     ports:
       - "5000:5000"
     environment:
-      - SECRET_KEY=docker-compose-dev-key-change-in-production
-      - FLASK_ENV=development
+      - SECRET_KEY=docker-compose-secret-key-replace-in-production
+      - FLASK_DEBUG=1
     volumes:
       - uploads:/app/uploads
       - db_data:/app/instance
